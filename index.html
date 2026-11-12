@@ -518,6 +518,18 @@ details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .d-src[open] { margin: 0.5em 0 0.2em; padding-left: 0.9em; border-left: 2px solid var(--line); }
 .d-src[open] .d-say { font-size: 0.93em; color: var(--dim); margin: 0.5em 0; }
 .d-src small { display: block; font-size: 0.78em; color: var(--dim); }
+.d-marks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr)); gap: 1.3em 1.6em; margin: 1.4em 0 1.8em; }
+.d-mark { display: grid; gap: 0.25em; align-content: start; padding-top: 0.7em; border-top: 2px solid var(--accent); }
+.d-mark strong { font: var(--dw) 1.55em/1.1 var(--display); letter-spacing: var(--track); font-variant-numeric: tabular-nums; }
+.d-mark span { font-size: 0.86em; line-height: 1.35; }
+.d-mark small { font-size: 0.74em; color: var(--dim); }
+.d-caution { margin: 1.8em 0; padding: 0.2em 0 0.4em 1.1em; border-left: 3px solid var(--fg); }
+.s.l-desk .d-caution .d-h { margin-top: 0.6em; color: var(--fg); }
+.s .d-step { display: flex; gap: 0.8em; align-items: flex-start; width: 100%; padding: 0.6em 0; border-bottom: 1px solid var(--line); text-align: left; line-height: 1.45; }
+.d-step i { flex: none; width: 1.15em; height: 1.15em; margin-top: 0.18em; border: 1.5px solid var(--fg); border-radius: 50%; }
+.d-step.done i { background: var(--accent); border-color: var(--accent); }
+.d-step.done span { color: var(--dim); text-decoration: line-through; text-decoration-color: var(--line); }
+.d-ctx > .d-fold:first-of-type { border-top: 1px solid var(--line); margin-top: 1.6em; }
 .d-mine { margin: 0 0 1.1em; padding-left: 0.9em; border-left: 2px solid var(--accent); font-size: 1.06em; }
 .d-mine small { display: block; font-size: 0.72em; color: var(--dim); margin-top: 0.2em; }
 .d-made { margin: 1.2em 0 0; font-size: 0.86em; color: var(--dim); }
@@ -1489,6 +1501,17 @@ function shapeOf(element, files) {
   return {};
 }
 
+// What an author set in bold and holds a number is a mark: here is where to look. It is kept with the
+// words it was set in and, in a table, with the row and the column it stands in.
+function marksOf(element) {
+  return [...element.querySelectorAll('strong')].filter((strong) => strong.querySelector('data[id]')).map((strong) => {
+    const cell = strong.closest('td, th');
+    const head = cell && element.querySelector('thead > tr:last-child')?.children[[...cell.parentElement.children].indexOf(cell)];
+    const label = cell ? [cell.parentElement.firstElementChild !== cell && squash(cell.parentElement.firstElementChild.textContent).trim(), head && squash(head.textContent).trim()].filter(Boolean).join(' · ') : '';
+    return { text: squash(strong.textContent).trim(), values: [...strong.querySelectorAll('data[id]')].map((value) => value.id), ...(label && { label }) };
+  });
+}
+
 // A part of a container that came as a file of its own (a report and the PDF it was printed as): the
 // section it stands in, and the file its first unit declares.
 function documentsOf(doc, files) {
@@ -1548,6 +1571,7 @@ function unitOf(element, unitIds, files) {
     ...(under !== null && { under }),
     ...(path.length > 1 && { path }),
     ...(strong && { lead: strong }),
+    ...(marksOf(element).length && { marks: marksOf(element) }),
     ...shapeOf(element, files),
     text: segmentsOf(element),
     ...(kind === 'ask' && { ask: askOf(element) }),
@@ -3578,6 +3602,7 @@ function screenRequest(words, t, P) {
     '{"says": "ID ID", "text": one or two sentences in plain words saying what those statements say. Every number, date and measure is written as {VALUE_ID}, taken from those statements: never type a digit.}',
     '{"show": "ID"} for the statement, table, figure or list itself, as its author made it. Use it for tables and figures, and where the exact words matter.',
     '{"mine": something the container does not say: a comparison, a caution, that it does not hold what was asked. It is shown as yours, not the author\'s.}',
+    `The author marked these for every reader; show the statements they stand in where they bear on what was asked: ${marksOf(t).map((mark) => `${mark.values[0].split('.')[0]} (${mark.text})`).slice(0, 12).join(', ') || 'none'}.`,
     'Give only what answers what they said, shaped for this person. The statements, as id | what it is | its text with each value written {id=shown}:', ...all.map((one) => one.slice(0, room))].join('\n');
 }
 // With no model, a few plain words still find what they name: tables, figures, what is essential, a heading.
@@ -3677,6 +3702,35 @@ function drawUnit(t, u, c, large) {
   const segs = u.lead && typeof u.text[0] === 'string' && u.text[0].startsWith(u.lead) ? [h('strong', { text: u.lead }), ...words([u.text[0].slice(u.lead.length), ...u.text.slice(1)])] : words(u.text);
   return h('p', { class: `d-say${large ? ' large' : ''}` }, segs);
 }
+// What the author marked for every reader: the numbers set in bold in the statements marked essential,
+// each with what it is a number of. Whatever screen a person has, these are on it.
+function marksOf(t) {
+  const seen = new Set();
+  return t.units.filter((u) => u.must && u.marks).flatMap((u) => u.marks.map((mark) => ({ ...mark, label: mark.label ?? u.lead ?? u.under ?? '', from: t.docs?.find((doc) => doc.units.includes(u.id))?.file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ') ?? null })))
+    // The same numbers marked in two documents are one mark: the later document's.
+    .reverse().filter((mark) => { const key = mark.values.map((id) => t.values[id].number).join(); return !seen.has(key) && seen.add(key); }).reverse().slice(0, 12)
+    // Which document a mark is from is said only where the marks are from more than one.
+    .map((mark, i, all) => (new Set(all.map((one) => one.from)).size > 1 ? mark : { ...mark, from: null }));
+}
+// A context is written in sections, named by what they are for. A person's device makes its own screen
+// of them: what the author marked and what the documents do not show are always there; how much of the
+// rest, and whether the numbers or the words come first, follows what the device knows of its person.
+const SECTION = [['what', /^what this is/i], ['problem', /^the problem/i], ['how', /^(the (method|approach)|what was built)/i], ['found', /^what (was found|simulation showed)/i], ['limits', /^what it does not show/i], ['next', /^what comes next/i], ['between', /^between /i], ['more', /^more:/i]];
+function composeContext(t, P) {
+  const sections = [];
+  for (const b of t.context) { if (b.h) sections.push({ role: SECTION.find(([, words]) => words.test(b.h))?.[0] ?? 'other', title: b.h, blocks: [] }); else (sections.at(-1) ?? sections[sections.push({ role: 'other', title: '', blocks: [] }) - 1]).blocks.push(b); }
+  const of = (role) => sections.filter((sec) => sec.role === role);
+  const amount = ['gist', 'main', 'all'].includes(P.amount) ? P.amount : 'all';
+  const numbersFirst = P.take === 'numbers';
+  const marks = marksOf(t).length ? [{ as: 'marks' }] : [];
+  const what = of('what').map((sec) => ({ as: 'open', sec }));
+  const found = of('found').map((sec) => ({ as: amount === 'gist' ? 'first' : 'open', sec }));
+  const rest = amount === 'gist' ? [] : [...of('next').map((sec) => ({ as: 'next', sec })), ...[...of('problem'), ...of('how')].map((sec) => ({ as: amount === 'all' ? 'open' : 'folded', sec })),
+    ...of('between').map((sec) => ({ as: 'open', sec })), ...[...of('other'), ...of('more')].map((sec) => ({ as: 'folded', sec }))];
+  const parts = [...(numbersFirst ? [...marks, ...found, ...what] : [...what, ...marks, ...found]), ...of('limits').map((sec) => ({ as: 'limits', sec })), ...rest];
+  const left = sections.length - new Set(parts.map((one) => one.sec).filter(Boolean)).size;
+  return { parts, why: `Made for you: ${{ gist: 'the gist', main: 'the main points', all: 'everything' }[amount]}, ${numbersFirst ? 'numbers first' : 'in words first'}${me.from.amount || me.from.take ? '' : ', until you say otherwise'}.${left ? ` ${left} more ${left === 1 ? 'section is' : 'sections are'} held back.` : ''}` };
+}
 function drawBlocks(t, blocks, c) {
   const where = (id) => t.docs?.find((doc) => doc.units.includes(id))?.file.name ?? null;
   return blocks.map((b) => {
@@ -3712,9 +3766,12 @@ function deskScreen(P) {
     h('p', { class: 'dim', text: 'Or say it in the line below. A container made elsewhere opens by its index.html, with its files chosen beside it.' }),
     h('button', { type: 'button', class: 'd-link', id: 'd-samples', text: 'Look at a few samples first', on: { click: () => { me.samples = true; save(); again(); } } }));
 
-  const thingsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Your containers' }),
-    things.map((one) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(one.id === thing), on: { click: () => { thing = one.id; deskSheet = null; found = null; useNow(one.id); again(); } } },
-      h('strong', { text: calledOf(one, P, stateFor(one.id, 'you')) }), h('span', { text: one.docs ? `${one.docs.length} documents` : isCalc(one) ? 'a tool' : isIdea(one) ? 'a helper' : `${one.units.length} statements` }))),
+  // What its person holds, by what each thing is: containers are one kind among the others.
+  const row = (one) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(one.id === thing), on: { click: () => { thing = one.id; deskSheet = null; found = null; useNow(one.id); again(); } } },
+    h('strong', { text: calledOf(one, P, stateFor(one.id, 'you')) }), h('span', { text: one.docs ? `${one.docs.length} documents` : isContainer(one) ? `${one.units.length} statements` : '' }));
+  const kinds = [['Containers', things.filter(isContainer)], ['Tools', things.filter(isCalc)], ['Helpers', things.filter(isIdea)]].filter(([, list]) => list.length);
+  const thingsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Yours' }),
+    kinds.map(([name, list]) => [kinds.length > 1 ? h('h3', { text: name }) : null, list.map(row)]),
     h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'New container from files', on: { click: () => { newNext = true; files(); } } }),
     h('p', { class: 'dim', text: 'While this list is open, what you say below starts a new container too.' }),
     h('div', { class: 'd-acts' }, h('button', { type: 'button', class: 'd-link', id: 'd-send', text: 'Send the open one', on: { click: () => { deskSheet = null; again(); copyToSend(t); } } }),
@@ -3739,15 +3796,40 @@ function deskScreen(P) {
     if (form) { inner = screen(t, P, st, true, () => saveSoon(), null, noted); return h('div', { class: 'd-tool' }, inner.el); }
     if (!isContainer(t)) { inner = isCalc(t) ? calcScreen(t, 'you', P, st, true, () => saveSoon(), helperDesign('you')) : helperScreen(t, 'you', P, st, true, () => saveSoon(), passedOn, helperDesign('you')); return h('div', { class: 'd-tool' }, inner.el); }
     if (tab === 'context') {
+      // The context is not shown as it was written: this person's device makes its screen of it.
+      const made = composeContext(t, P);
+      const part = {
+        marks: () => h('div', { class: 'd-marks' }, marksOf(t).map((mark) => h('div', { class: 'd-mark' }, h('strong', { text: mark.text }), h('span', { text: mark.label }), mark.from ? h('small', { text: mark.from }) : null))),
+        limits: (sec) => h('aside', { class: 'd-caution' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
+        next: (sec) => h('section', { class: 'd-next' }, h('h2', { class: 'd-h', text: sec.title }), sec.blocks.map((b) => {
+          const u = b.show ? unitOf(t, b.show) : null;
+          // What comes next is a list to do: each step is ticked off on this device, and the tick stays here.
+          if (u?.shape !== 'list') return drawBlocks(t, [b], c);
+          return u.items.map((item, i) => { const key = `${u.id}:${i}`; const done = (st.done ?? []).includes(key);
+            return h('button', { type: 'button', class: `d-step${done ? ' done' : ''}`, 'aria-pressed': String(done), on: { click: () => { st.done = done ? st.done.filter((one) => one !== key) : [...(st.done ?? []), key]; saveSoon(); again(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, nodes(t, item, t.lang))); });
+        })),
+        open: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
+        first: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks.slice(0, 1), c)),
+        folded: (sec) => h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: sec.title.replace(/^More:\s*/i, '').replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }), h('small', { text: String(sec.blocks.length) })), h('div', { class: 'd-in' }, drawBlocks(t, sec.blocks, c))),
+      };
+      const amounts = ['gist', 'main', 'all'];
+      const turn = (step) => () => { P.amount = amounts[amounts.indexOf(P.amount) + step]; me.from.amount = 'said'; save(); again(); };
       const inIt = new Set(t.context.flatMap((b) => (b.show ? [b.show] : b.says ?? [])));
       const out = t.units.filter((u) => u.must && !inIt.has(u.id)).length;
-      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: t.title ?? t.label })), drawBlocks(t, t.context, c),
-        h('p', { class: 'd-made' }, 'This context was written from the documents and is kept with them. Each sentence opens onto the statements it stands on, and every number in it is taken from them.',
-          out ? ` ${out} essential ${out === 1 ? 'statement of the documents is' : 'statements of the documents are'} not in it.` : ''));
+      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: t.title ?? t.label })),
+        made.parts.map(({ as, sec }) => part[as](sec)),
+        h('p', { class: 'd-made' }, `${made.why} `,
+          P.amount !== 'gist' ? h('button', { type: 'button', class: 'd-link', id: 'd-less', text: 'Less', on: { click: turn(-1) } }) : null, P.amount !== 'gist' && P.amount !== 'all' ? ' · ' : null,
+          P.amount !== 'all' ? h('button', { type: 'button', class: 'd-link', id: 'd-more', text: 'More', on: { click: turn(1) } }) : null,
+          out ? ` ${out} essential ${out === 1 ? 'statement of the documents is' : 'statements of the documents are'} not in this context.` : ''));
     }
     if (typeof tab === 'string' && tab !== 'all') {
       const made = kept[Number(tab.slice(1))];
+      // Whatever was asked for, what the author marked is on the screen: here if the screen did not already hold it.
+      const has = new Set(made.blocks.flatMap((b) => (b.show ? (unitOf(t, b.show).marks ?? []).flatMap((mark) => mark.values) : [...(b.text ?? []), ...(b.mine ?? [])].filter((part) => part.v).map((part) => part.v))));
+      const missed = marksOf(t).filter((mark) => !mark.values.some((id) => has.has(id)));
       return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: made.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) })), drawBlocks(t, made.blocks, c),
+        missed.length ? h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: 'The author also points at' }), h('div', { class: 'd-marks' }, missed.map((mark) => h('div', { class: 'd-mark' }, h('strong', { text: mark.text }), h('span', { text: mark.label }), mark.from ? h('small', { text: mark.from }) : null)))) : null,
         h('p', { class: 'd-made' }, 'Made from what you said, and kept. ', h('button', { type: 'button', class: 'd-link', id: 'd-forget', text: 'Forget this screen', on: { click: () => { me.screens[t.id] = kept.filter((one) => one !== made); st.tab = undefined; save(); again(); } } })));
     }
     return h('div', { class: 'd-body' }, h('header', { class: 'd-doc' }, h('h1', { text: doc?.title ?? t.title ?? t.label }),
