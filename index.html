@@ -449,14 +449,45 @@ details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .s .p-cell { width: 100%; min-width: 0; height: 2.3em; padding: 0 0.5em; border: 0; border-radius: calc(min(var(--r), 8) * 1px); box-shadow: inset 0 0 0 1.5px var(--line); background: none; color: inherit; font: inherit; font-variant-numeric: tabular-nums; }
 .p-row-acts { display: flex; gap: 0.8em; align-items: center; flex-wrap: wrap; }
 /* A device's own taste: beyond colour and type, how things are edged, titled, grounded and pressed. */
-.s[data-edge="lined"] :is(.p-card, .p-fig, .h-piece, .k-out:not(.first), .k-field, .h-own) { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
-.s[data-edge="flat"] :is(.p-card, .p-fig, .h-piece, .k-out:not(.first)) { background: none; border-radius: 0; padding-left: 0; padding-right: 0; border-top: 1.5px solid var(--line); }
-.s[data-edge="flat"] :is(.k-field, .h-own) { background: none; border-radius: 0; padding-left: 0; padding-right: 0; border-bottom: 1.5px solid var(--fg); }
-.s[data-title="caps"] :is(.h-title, .p-title, .d-title) { font: 700 0.95em/1.3 var(--text); letter-spacing: 0.12em; text-transform: uppercase; }
-.s[data-title="ruled"] :is(.h-title, .p-title, .d-title) { padding-bottom: 0.35em; border-bottom: 3px solid var(--accent); }
-.s[data-ground="tint"] { background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 24%, var(--bg)), var(--bg) 55%); }
-.s[data-ground="dots"] { background-image: radial-gradient(color-mix(in oklab, var(--fg) 14%, transparent) 1px, transparent 1.5px); background-size: 14px 14px; }
-.s[data-button="block"] :is(.h-opt, .h-go, .p-pill, .p-acts button, .h-two button, .h-card, .k-out.first, .p-voice) { border-radius: 3px; }
+/* The cuts are for screens with room. A watch holds one thing and is set one way. */
+/* Sheet: no boxes. Type, space and hairlines carry it; the accent is kept for what is live and what is pressed. */
+.s:not(.on-watch)[data-cut="sheet"] :is(.p-card, .p-fig, .h-piece, .k-out, .k-field, .h-own, .talk-opt) { background: none; border-radius: 0; padding: 0; box-shadow: none; }
+.s:not(.on-watch)[data-cut="sheet"] .p-fig { min-height: auto; }
+.s:not(.on-watch)[data-cut="sheet"] .talk-opt { min-height: 44px; }
+.s:not(.on-watch)[data-cut] :is(.l-board > .cols > *, .l-tool > *) { flex-shrink: 0; }
+.s:not(.on-watch)[data-cut="sheet"].l-board > .cols > * + *, .s:not(.on-watch)[data-cut="sheet"].l-tool > * + *, .s:not(.on-watch)[data-cut="sheet"] .d-root > * + * { border-top: 1px solid var(--line); padding-top: 0.95em; }
+.s:not(.on-watch)[data-cut="sheet"].l-board, .s:not(.on-watch)[data-cut="sheet"].l-tool { gap: 0.95em; }
+.s:not(.on-watch)[data-cut="sheet"] :is(.p-title, .h-title, .d-title) { font: 500 1.95em/1.08 var(--display); letter-spacing: -0.02em; }
+.s:not(.on-watch)[data-cut="sheet"] .p-fig { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 0.7em; }
+.s:not(.on-watch)[data-cut="sheet"] .p-fig > :not(.n):not(.cap) { grid-column: 1 / -1; }
+.s:not(.on-watch)[data-cut="sheet"] .p-fig .n { font-size: 2.3em; color: var(--fg); }
+.s:not(.on-watch)[data-cut="sheet"] .p-turn { display: none; }
+.s:not(.on-watch)[data-cut="sheet"] :is(.p-acts .yes, .h-go) { background: var(--fg); color: var(--bg); border-radius: 4px; }
+.s:not(.on-watch)[data-cut="sheet"] :is(.p-acts .no, .h-two button, .h-opt, .p-pill, .talk-opt) { box-shadow: none; border-radius: 0; padding: 0; min-height: 40px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 5px; background: none; color: inherit; text-align: left; }
+.s:not(.on-watch)[data-cut="sheet"] :is(.h-opt, .p-pill)[aria-pressed="true"] { text-decoration-color: var(--accent); text-decoration-thickness: 2.5px; font-weight: 700; }
+.s:not(.on-watch)[data-cut="sheet"] .h-opts { gap: 0.2em 1.2em; }
+.s:not(.on-watch)[data-cut="sheet"] :is(.k-field, .p-cell, .h-own, input[type=text]) { box-shadow: none; border-radius: 0; border-bottom: 1.5px solid var(--fg); padding-left: 0; }
+.s:not(.on-watch)[data-cut="sheet"] .k-out.first { color: inherit; }
+.s:not(.on-watch)[data-cut="sheet"] .k-out.first strong { color: var(--accent); font-size: 3em; }
+.s:not(.on-watch)[data-cut="sheet"] .h-card { background: none; color: inherit; border-radius: 0; border-block: 1px solid var(--line); min-height: 3.4em; }
+/* Blocks: every piece is a band across the whole screen, edge to edge, with no radius and almost no gap. */
+.s:not(.on-watch)[data-cut="blocks"].l-board, .s:not(.on-watch)[data-cut="blocks"].l-tool { padding-left: 0; padding-right: 0; gap: 2px; }
+.s:not(.on-watch)[data-cut="blocks"].l-board > .cols > *, .s:not(.on-watch)[data-cut="blocks"].l-tool > *, .s:not(.on-watch)[data-cut="blocks"] .d-root > * { padding: 0.95em 20px; border-radius: 0; margin: 0; }
+.s:not(.on-watch)[data-cut="blocks"] :is(.p-card, .p-fig, .h-piece, .k-out, .p-say, .p-q, .k-in, .p-note, .h-q) { background: var(--card); }
+.s:not(.on-watch)[data-cut="blocks"] :is(.p-title, .h-title, .d-title) { font: 800 2.1em/0.98 var(--display); letter-spacing: -0.03em; text-transform: uppercase; }
+.s:not(.on-watch)[data-cut="blocks"] :is(.p-q, .k-out.first, .h-card) { --fg: var(--on0); --accent: var(--on0); --on: var(--accent0); --dim: color-mix(in oklab, var(--on0) 80%, var(--accent0)); --line: color-mix(in oklab, var(--on0) 50%, transparent); --card: color-mix(in oklab, var(--on0) 15%, transparent); background: var(--accent0); color: var(--on0); border-radius: 0; }
+.s:not(.on-watch)[data-cut="blocks"] .p-acts { gap: 2px; padding: 0 !important; }
+.s:not(.on-watch)[data-cut="blocks"] :is(.p-acts button, .h-go, .h-two button) { border-radius: 0; min-height: 72px; }
+.s:not(.on-watch)[data-cut="blocks"] :is(.h-opt, .p-pill, .talk-opt, .k-field, .p-cell, .h-own) { border-radius: 0; }
+.s:not(.on-watch)[data-cut="blocks"] .p-fig .n { font-size: 3.4em; }
+.s:not(.on-watch)[data-cut="blocks"] .d-root { gap: 2px; }
+.s:not(.on-watch)[data-cut="blocks"] .p-note { font-size: 0.9em; }
+/* Soft: pieces gathered on large rounded surfaces, with room around them. */
+.s:not(.on-watch)[data-cut="soft"].l-board, .s:not(.on-watch)[data-cut="soft"].l-tool { gap: 1em; }
+.s:not(.on-watch)[data-cut="soft"] :is(.p-title, .h-title, .d-title) { font-size: 1.55em; }
+/* A label over a piece is a quiet sentence, not a shout. */
+.h-piece > small, .p-yours { font-size: 0.87em; letter-spacing: 0; text-transform: none; color: var(--dim); }
+.p-yours { color: var(--accent); font-weight: 600; }
 .s[data-home="tiles"].l-home.on-phone .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
 .s[data-home="tiles"].l-home.on-phone .cols > * { grid-column: 1 / -1; }
 .s[data-home="tiles"].l-home.on-phone .cols > button.home-row { grid-column: auto; align-content: start; }
@@ -466,29 +497,39 @@ body:has(.shell.app) { padding: 0; }
 .app .top > h1, .app .top > p:not(#opened), .app .things, .app .people, .app > .foot { display: none; }
 .app .focus { display: block; }
 .app .focus > .about { display: none; }
-.app .stage { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; display: block; }
+.app .stage { position: fixed; inset: 0 0 calc(58px + env(safe-area-inset-bottom, 0px)) 0; display: block; }
+.say { display: none; }
+.app .say { position: fixed; left: 0; right: 0; bottom: 0; height: calc(58px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background: var(--bg); color: var(--fg); z-index: 25; }
+.say-hints { display: none; }
+.app:has(#say-text:focus) .say-hints:not(:empty) { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px 18px; flex-wrap: wrap; padding: 10px 16px; z-index: 26; background: var(--bg); border-top: 1px solid var(--line); }
+.say-hints button { border: 0; background: none; padding: 4px 0; font: 15px/1.2 var(--text, var(--shell)); color: var(--dim, var(--muted)); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
+.say input[type=text] { flex: 1; min-width: 0; height: 40px; border-radius: 20px; border: 0; padding: 0 16px; font: 16px/1 var(--text, var(--shell)); background: color-mix(in oklab, var(--fg) 9%, transparent); color: var(--fg); caret-color: var(--accent, currentColor); }
+.say input[type=text]::placeholder { color: color-mix(in oklab, var(--fg) 62%, transparent); }
+.say input[type=text]:focus { outline: 2px solid var(--accent, currentColor); outline-offset: 1px; }
+.say button { flex: none; width: 40px; height: 40px; border-radius: 20px; border: 0; background: none; color: var(--fg); cursor: pointer; display: grid; place-items: center; }
+.say button svg { width: 22px; height: 22px; }
+.p-img { display: block; width: 100%; max-height: 16em; object-fit: cover; border-radius: calc(var(--r) * 0.6px); }
 .app .stage-scroll, .app .fit { width: 100% !important; height: 100% !important; padding: 0; overflow: hidden; }
 .app .stage .dev { position: static; transform: none !important; width: 100%; height: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; animation: none; }
 .app .stage .dev .scr { width: 100%; height: 100%; border-radius: 0; }
 .appbar { display: none; }
 .shell:not(.app) .appbar { display: block; }
 .shell:not(.app) .appbar button { font: 600 14px/1.2 var(--shell); text-decoration: underline; text-underline-offset: 3px; border: 0; background: none; color: var(--fg); cursor: pointer; padding: 6px 0; }
-.app .appbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(54px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); display: flex; background: var(--bg); border-top: 1px solid var(--line); z-index: 25; }
-.app .appbar button { flex: 1; border: 0; background: none; font: 600 13px/1 var(--text, var(--shell)); color: var(--dim, var(--muted)); cursor: pointer; }
-.app .appbar button[aria-pressed="true"] { color: var(--fg); box-shadow: inset 0 2px 0 var(--accent, var(--fg)); }
+.app .appbar { display: none; }
 .app.me-open .stage { display: none; }
-.app.me-open .focus { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; overflow-y: auto; padding: 16px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "know" "rest"; align-content: start; background: var(--bg); }
+.app.me-open .focus { position: fixed; inset: 0 0 calc(58px + env(safe-area-inset-bottom, 0px)) 0; overflow-y: auto; padding: 16px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "know" "rest"; align-content: start; background: var(--bg); }
 .app.me-open .focus > .about:not(:empty) { display: grid; }
-.app #make:not([hidden]), .app #as:not([hidden]) { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; z-index: 20; overflow-y: auto; border-radius: 0; border: 0; align-content: start; }
-.app #opened:not(:empty), .app #learned:not(:empty) { position: fixed; left: 12px; right: 12px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.4); color: var(--fg); max-width: none; cursor: pointer; }
-.app #token:not([hidden]) { position: fixed; left: 12px; right: 12px; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); z-index: 30; height: 84px; width: auto; }
+.app #make:not([hidden]), .app #as:not([hidden]) { position: fixed; inset: 0 0 calc(58px + env(safe-area-inset-bottom, 0px)) 0; z-index: 20; overflow-y: auto; border-radius: 0; border: 0; align-content: start; }
+.app #opened:not(:empty), .app #learned:not(:empty) { position: fixed; left: 12px; right: 12px; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.4); color: var(--fg); max-width: none; cursor: pointer; }
+.app #token:not([hidden]) { position: fixed; left: 12px; right: 12px; bottom: calc(136px + env(safe-area-inset-bottom, 0px)); z-index: 30; height: 84px; width: auto; }
 @media (min-width: 700px) {
-  .app .stage, .app.me-open .focus, .app #make:not([hidden]), .app #as:not([hidden]) { left: 50%; right: auto; width: 400px; margin-left: -200px; top: 20px; bottom: 88px; border-radius: 34px; overflow: hidden; box-shadow: 0 30px 50px -30px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line); }
+  .app .stage, .app.me-open .focus, .app #make:not([hidden]), .app #as:not([hidden]) { left: 50%; right: auto; width: 400px; margin-left: -200px; top: 20px; bottom: 92px; border-radius: 34px; overflow: hidden; box-shadow: 0 30px 50px -30px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line); }
   .app.me-open .focus, .app #make:not([hidden]), .app #as:not([hidden]) { overflow-y: auto; }
-  .app .appbar { left: 50%; right: auto; width: 400px; margin-left: -200px; bottom: 20px; height: 54px; padding-bottom: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .app .say { left: 50%; right: auto; width: 400px; margin-left: -200px; bottom: 22px; height: 58px; padding: 9px 0; background: none; }
+  .app:has(#say-text:focus) .say-hints:not(:empty) { left: 50%; right: auto; width: 400px; margin-left: -200px; bottom: 92px; border: 0; background: none; padding: 0 6px 8px; }
   .app #opened:not(:empty), .app #learned:not(:empty), .app #token:not([hidden]) { left: 50%; right: auto; width: 376px; margin-left: -188px; }
-  .app #opened:not(:empty), .app #learned:not(:empty) { bottom: 98px; }
-  .app #token:not([hidden]) { bottom: 166px; }
+  .app #opened:not(:empty), .app #learned:not(:empty) { bottom: 100px; }
+  .app #token:not([hidden]) { bottom: 168px; }
 }
 </style>
 <div class="shell">
@@ -510,6 +551,8 @@ body:has(.shell.app) { padding: 0; }
     <div class="stage" id="stage"></div>
     <aside class="about" id="about"></aside>
   </main>
+  <div class="say-hints" id="say-hints"></div>
+  <form class="say" id="say" autocomplete="off"><button type="button" id="say-home" aria-label="Home"></button><input type="text" id="say-text" aria-label="Say what you want, or what to keep" placeholder="Say it, or put something in" enterkeyhint="go"><input type="file" id="say-files" multiple hidden><button type="button" id="say-add" aria-label="Put a file or a picture in"></button></form>
   <nav class="appbar" id="bar" aria-label="Your app"></nav>
   <p class="foot">A working sketch, not a product. What it learns about you, what you make or are sent, and a screen designed for you are kept in this browser and nowhere else; “Forget everything” erases them. Nothing leaves the page unless you copy something to send, ask Claude, keep a copy in your Claude Docs, or save a file for your own AI, and it says what goes first. The three things to read are real containers, read here as they are; the two helpers are ideas with no code. Every screen is made by a composer from what was sent and what the device knows. The sample people’s calendars and clock are stand-ins. Yours are real: this device’s clock, a calendar file you give it (only the hours taken are kept), and whatever way of telling you this browser allows. The Ukrainian wording, the short headlines and the captions under numbers of the first two things stand for what a model writes once and the thing then carries; each is marked, with the author’s own words one tap away.</p>
 </div>
@@ -546,6 +589,7 @@ function svg(inner, box = '0 0 24 24', cls = 'ic') {
   return t.content.firstChild;
 }
 const ic = (name) => svg(ICONS[name]);
+Object.assign(ICONS, { home: '<path d="M4 11.5 12 4l8 7.5V20h-5.5v-5.5h-5V20H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>', plus: '<path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' });
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const mean = (xs) => sum(xs) / xs.length;
 const two = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
@@ -598,16 +642,18 @@ const FACES = {
 };
 // A look is more than colour and type. Its taste is how things are edged, titled, grounded and pressed,
 // how the home is laid out and how a number is first drawn: two devices should not look like one app.
-const TASTES = { edge: ['filled', 'lined', 'flat'], title: ['big', 'caps', 'ruled'], ground: ['solid', 'tint', 'dots'], button: ['pill', 'block'], home: ['list', 'tiles'], figures: ['number', 'picture', 'Ring'] };
+// A cut is a whole way of setting the kit, designed as one: `sheet` has no boxes, only type, space and
+// hairlines; `blocks` sets every piece as a full-width band; `soft` gathers pieces on rounded surfaces.
+const TASTES = { cut: ['sheet', 'blocks', 'soft'], home: ['list', 'tiles'], figures: ['number', 'picture', 'Ring'] };
 const tasteFrom = (wanted, drawn = {}) => Object.fromEntries(Object.entries(TASTES).map(([key, kinds]) => [key, kinds.includes(wanted?.[key]) ? wanted[key] : drawn[key] ?? kinds[0]]));
 const LOOKS = {
-  petrol: { name: 'Petrol', bg: '#0C3B4D', fg: '#E8F4F1', dim: '#A5CDD0', accent: '#FFD23F', on: '#08222C', card: 'rgba(255,255,255,0.08)', line: 'rgba(232,244,241,0.4)', good: '#7BE0A3', warn: '#FFB65C', face: 'wide', r: 20, taste: { ground: 'tint' } },
-  ledger: { name: 'Ledger', bg: '#FBFBF7', fg: '#15191C', dim: '#667069', accent: '#2B62D9', on: '#FFFFFF', card: '#EFF0EA', line: '#D5D8D0', good: '#1B7A4C', warn: '#A6570A', face: 'plex', r: 6, mono: true, taste: { edge: 'flat', title: 'caps', button: 'block' } },
-  poster: { name: 'Poster', bg: '#2740E8', fg: '#FFFFFF', dim: 'rgba(255,255,255,0.82)', accent: '#FFE45C', on: '#15131F', card: 'rgba(255,255,255,0.14)', line: 'rgba(255,255,255,0.55)', good: '#8EF0C6', warn: '#FFE45C', face: 'grot', r: 24, taste: { button: 'block', figures: 'picture' },
+  petrol: { name: 'Petrol', bg: '#0C3B4D', fg: '#E8F4F1', dim: '#A5CDD0', accent: '#FFD23F', on: '#08222C', card: 'rgba(255,255,255,0.08)', line: 'rgba(232,244,241,0.4)', good: '#7BE0A3', warn: '#FFB65C', face: 'wide', r: 20, taste: { cut: 'soft' } },
+  ledger: { name: 'Ledger', bg: '#FBFBF7', fg: '#15191C', dim: '#667069', accent: '#2B62D9', on: '#FFFFFF', card: '#EFF0EA', line: '#D5D8D0', good: '#1B7A4C', warn: '#A6570A', face: 'plex', r: 6, mono: true, taste: { cut: 'sheet' } },
+  poster: { name: 'Poster', bg: '#2740E8', fg: '#FFFFFF', dim: 'rgba(255,255,255,0.82)', accent: '#FFE45C', on: '#15131F', card: 'rgba(255,255,255,0.14)', line: 'rgba(255,255,255,0.55)', good: '#8EF0C6', warn: '#FFE45C', face: 'grot', r: 24, taste: { cut: 'blocks', figures: 'picture' },
     fields: [['#2740E8', '#FFFFFF', '#FFE45C', '#15131F'], ['#FFE45C', '#15131F', '#2740E8', '#FFFFFF'], ['#FF5A45', '#FFFFFF', '#15131F', '#FFFFFF'], ['#15131F', '#FFFFFF', '#FF5A45', '#FFFFFF'], ['#8EF0C6', '#15131F', '#2740E8', '#FFFFFF']] },
-  night: { name: 'Night', bg: '#000000', fg: '#F3F4F6', dim: '#9BA0AA', accent: '#5BE38C', on: '#04130A', card: '#1C1D21', line: '#3A3D44', good: '#5BE38C', warn: '#FFB65C', face: 'round', r: 28, extra: ['#5CD2F2', '#FF7EB6'] },
-  daylight: { name: 'Daylight', bg: '#F6FAF2', fg: '#18261E', dim: '#5A6A5F', accent: '#23744A', on: '#F6FAF2', card: '#E6EEDF', line: '#C6D3BF', good: '#23744A', warn: '#A6570A', face: 'soft', r: 18, taste: { edge: 'lined', title: 'ruled', ground: 'dots' } },
-  ember: { name: 'Ember', bg: '#1D1611', fg: '#F4E8D4', dim: '#BCA98F', accent: '#F2A93B', on: '#1D1611', card: '#2A2019', line: '#5A4838', good: '#9BD68B', warn: '#F2A93B', face: 'serif', r: 20, taste: { edge: 'lined', ground: 'tint', figures: 'Ring' } },
+  night: { name: 'Night', bg: '#000000', fg: '#F3F4F6', dim: '#9BA0AA', accent: '#5BE38C', on: '#04130A', card: '#1C1D21', line: '#3A3D44', good: '#5BE38C', warn: '#FFB65C', face: 'round', r: 28, extra: ['#5CD2F2', '#FF7EB6'], taste: { cut: 'soft' } },
+  daylight: { name: 'Daylight', bg: '#F6FAF2', fg: '#18261E', dim: '#5A6A5F', accent: '#23744A', on: '#F6FAF2', card: '#E6EEDF', line: '#C6D3BF', good: '#23744A', warn: '#A6570A', face: 'soft', r: 18, taste: { cut: 'sheet' } },
+  ember: { name: 'Ember', bg: '#1D1611', fg: '#F4E8D4', dim: '#BCA98F', accent: '#F2A93B', on: '#1D1611', card: '#2A2019', line: '#5A4838', good: '#9BD68B', warn: '#F2A93B', face: 'serif', r: 20, taste: { cut: 'soft', figures: 'Ring' } },
 };
 function rng(seed) {
   let a = 2166136261;
@@ -637,7 +683,7 @@ function wear(el, look, colours) {
   const face = FACES[look.face];
   const [bg, fg, accent, on] = colours ?? [look.bg, look.fg, look.accent, look.on];
   const set = { '--bg': bg, '--fg': fg, '--accent': accent, '--on': on, '--dim': colours ? fg : look.dim, '--card': look.card, '--line': colours ? fg : look.line, '--good': look.good, '--warn': look.warn,
-    '--display': face.display, '--text': face.text, '--dw': String(face.dw), '--track': face.track, '--r': String(look.r) };
+    '--display': face.display, '--text': face.text, '--dw': String(face.dw), '--track': face.track, '--r': String({ sheet: 4, blocks: 0 }[tasteFrom(look.taste).cut] ?? Math.max(look.r, 20)) };
   for (const [name, value] of Object.entries(set)) el.style.setProperty(name, value);
   for (const [key, kind] of Object.entries(tasteFrom(look.taste))) el.dataset[key] = kind;
 }
@@ -2634,7 +2680,7 @@ function asThing(t) {
 // What a person says they want a thing to be, matched to a form by its plain words. A model, where there
 // is one, is asked only when the words match nothing.
 const WISHES = [['todo', /list|to.?do|check|tick|task|remind/i], ['story', /story|one (thing )?at a time|slides?|step by step|cards?/i], ['numbers', /number|what.?if|chang|try|play|calculat|track|keep|add|update|my own/i],
-  ['glance', /glance|one number|at a look|quick|short|listen|aloud|voice/i], ['data', /data|table|file|sheet|cells?|rows?/i], ['page', /page|read|everything|whole|document|all of it/i],
+  ['glance', /glance|one number|at a look|quick|short|listen|aloud|voice/i], ['data', /data|table|file|sheet|cells?|rows?/i], ['page', /page|read|everything|whole|document|all of it|what it is/i],
   ['use', /use|work|run|do it|start/i]];
 function formWished(t, P, text) {
   const forms = formsFor(t);
@@ -2649,6 +2695,224 @@ const WISH_REQUEST = (t, P, text) => [
   `What they said: ${text.slice(0, 300)}`,
   'If one of these forms is what they mean, answer with one JSON object and nothing else: {"form": ID}', ...Object.entries(formsFor(t)).filter(([, form]) => !form.fits(t, P)).map(([id, form]) => `"${id}": ${form.name}. ${form.does}`),
   ...(isCalc(t) || isIdea(t) ? [] : ['If none of them is, design the screen they described instead, as follows.', designRequest(t, P)])].join('\n');
+
+// ---- a place: what a person puts in, and keeps adding to ---------------------------------------------
+// The one thing a person does here is say something or put something in. A place holds what they put:
+// words, a table of data, a picture, any file, each with what they said about it. It can be added to at
+// any time, and it is a container like any other: every form that fits it is open to it, and it can be
+// sent. What the device says about a table (its averages and sums) is worked out from the table and is
+// bound to it, so it moves when the data does.
+const PLACE_MOST = 40;
+function tableFrom(name, text) {
+  const lines = String(text).replace(/\r/g, '').split('\n').filter((line) => line.trim()).slice(0, 400);
+  const cut = (line) => line.split(/[,;\t]/).map((cell) => cell.trim().replace(/^"(.*)"$/, '$1'));
+  if (lines.length < 2) return null;
+  const heads = cut(lines[0]);
+  const body = lines.slice(1).map(cut).filter((cells) => cells.length === heads.length);
+  // A column is data when every row of it is a number.
+  const numeric = heads.map((_, j) => j).filter((j) => body.length && body.every((cells) => cells[j] !== '' && Number.isFinite(Number(cells[j].replace(',', '.')))));
+  const labels = heads.findIndex((_, j) => !numeric.includes(j));
+  if (!numeric.length) return null;
+  const cols = numeric.slice(0, 4).map((j) => [`c${j}`, short(heads[j], 24) || `column ${j + 1}`]);
+  const rows = body.map((cells, i) => ({ key: labels < 0 ? String(i + 1) : short(cells[labels], 20) || String(i + 1), ...Object.fromEntries(numeric.slice(0, 4).map((j) => [`c${j}`, Number(cells[j].replace(',', '.'))])) }));
+  return { name: short(name, 60), key: labels < 0 ? '' : heads[labels], cols, rows };
+}
+const tidy = (number) => String(Math.round(number * 100) / 100);
+function placeFrom(p) {
+  const title = short(p.title, 60) || 'A place';
+  const items = (Array.isArray(p.items) ? p.items : []).slice(0, PLACE_MOST).filter((item) => item && typeof item === 'object');
+  const written = items.filter((item) => item.t === 'text' && typeof item.text === 'string').map((item) => item.text.slice(0, 8000)).join('\n');
+  const base = written.trim() ? thingFromText(`${title.replace(/[.!?]+$/, '')}\n${written}`) : { lang: 'en', units: [], values: {} };
+  const units = [...base.units];
+  const values = { ...base.values };
+  const files = {};
+  items.forEach((item, i) => {
+    if (item.t === 'data') {
+      const file = tableFrom(item.name, item.csv);
+      if (!file) return;
+      files[`f${i}`] = file;
+      file.cols.forEach(([col, head]) => {
+        const xs = file.rows.map((row) => row[col]);
+        const id = `f${i}${col}`;
+        values[`${id}.mean`] = { type: 'data', shown: tidy(mean(xs)), number: mean(xs), from: { file: `f${i}`, col, as: 'mean' }, unit: id };
+        values[`${id}.sum`] = { type: 'data', shown: tidy(sum(xs)), number: sum(xs), from: { file: `f${i}`, col, as: 'sum' }, unit: id };
+        units.push({ id, kind: 'claim', text: [`${head}: `, { v: `${id}.mean` }, ' on average and ', { v: `${id}.sum` }, ` in all, over the rows of ${file.name}.`] });
+      });
+    } else if (item.t === 'image' && typeof item.data === 'string' && item.data.startsWith('data:image/')) {
+      units.push({ id: `i${i}`, kind: 'claim', must: true, text: [short(item.says, 200) || short(item.name, 60) || 'A picture'], image: item.data });
+    } else if (item.t === 'file') {
+      units.push({ id: `x${i}`, kind: 'claim', text: [`${short(item.says, 200) ? `${short(item.says, 200)} ` : ''}(${short(item.name, 60)}${item.size ? `, ${item.size}` : ''})`] });
+    }
+  });
+  if (!units.length) return null;
+  // With nobody to say what matters most, the first thing put in does, and so does whatever asks.
+  if (!units.some((u) => u.must)) units[0].must = true;
+  return { id: `place${Object.keys(THINGS).length}`, place: true, lang: base.lang, title, label: `A place: ${title.slice(0, 26)}`, units, values, files, said: {},
+    count: `${units.length} statements, ${Object.keys(values).length} values${Object.keys(files).length ? ` and ${Object.keys(files).length} tables` : ''}`,
+    note: 'Put together from what was said and put in here. Sentences are kept word for word; what is said of a table is worked out from the table.' };
+}
+// Adding to a place makes it again from everything in it. It stays the same thing, with the same answers and form.
+function extendPlace(t, more) {
+  const payload = { ...t.payload, items: [...t.payload.items, ...more].slice(0, PLACE_MOST) };
+  const made = placeFrom(payload);
+  if (!made) return null;
+  const was = toToken(t.payload);
+  Object.assign(made, { id: t.id, payload });
+  THINGS[t.id] = made;
+  me.tokens = me.tokens.map((token) => (token === was ? toToken(payload) : token));
+  save();
+  return made;
+}
+// A picture is kept small: no wider or taller than 900, so that a few of them fit in what a browser keeps.
+function pictureFrom(file) {
+  return new Promise((done) => {
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, 900 / Math.max(image.width, image.height));
+      const canvas = Object.assign(document.createElement('canvas'), { width: Math.round(image.width * scale), height: Math.round(image.height * scale) });
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(image.src);
+      done(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    image.onerror = () => done(null);
+    image.src = URL.createObjectURL(file);
+  });
+}
+const saysPlain = PIECES.say;
+PIECES.say = (c, b) => { const u = unitOf(c.thing, b.of); return u.image ? [h('img', { class: 'p-img', src: u.image, alt: '' }), saysPlain(c, b)] : saysPlain(c, b); };
+
+// ---- saying it: the one way in ------------------------------------------------------------------------
+// There are no buttons for a model. A person says what they want in their own words, or puts something
+// in. What can be understood from the words alone is done from the words alone: a thing they were sent,
+// a form, a tool written as a sum, a helper with its time, or simply something to keep. Only what is
+// left is put to a model, where there is one, and its answer is read by the same checks as any other.
+const SUM = /^\s*([^=]{2,40}?)\s*=\s*(.+)$/;
+// "area = width × length": a tool, from the sum itself. Names become what it takes.
+function toolFromWords(text) {
+  const found = SUM.exec(text);
+  if (!found || !/[+\-*/×÷]/.test(found[2])) return null;
+  const tokens = found[2].match(/\d+(?:[.,]\d+)?|[+\-*/×÷()]|[^\s+\-*/×÷()\d][^+\-*/×÷()]*/g)?.map((token) => token.trim()).filter(Boolean) ?? [];
+  const takes = [];
+  let at = 0;
+  const idOf = (name) => { const key = name.toLowerCase(); let take = takes.find((one) => one.key === key); if (!take) { take = { key, id: `x${takes.length}`, name: name.slice(0, 24), start: 1 }; takes.push(take); } return { in: take.id }; };
+  // The usual order: brackets, then × and ÷, then + and −, each from left to right.
+  const atom = () => { const token = tokens[at++]; if (token === '(') { const inner = lower(); return tokens[at++] === ')' ? inner : null; } if (token === undefined || /^[+\-*/×÷)]$/.test(token)) return null; return /^\d/.test(token) ? Number(token.replace(',', '.')) : idOf(token); };
+  const step = (next, signs) => () => { let left = next(); while (left !== null && Object.hasOwn(signs, tokens[at] ?? '')) { const op = signs[tokens[at++]]; const right = next(); left = right === null ? null : { op, of: [left, right] }; } return left; };
+  const higher = step(atom, { '*': 'mul', '×': 'mul', '/': 'div', '÷': 'div' });
+  const lower = step(higher, { '+': 'add', '-': 'sub' });
+  const from = lower();
+  if (from === null || at !== tokens.length || !takes.length || takes.length > 6) return null;
+  const name = found[1].trim();
+  return { title: name.slice(0, 28), purpose: `Work out ${name.toLowerCase()} from ${takes.map((take) => take.name.toLowerCase()).join(', ')}.`, takes: takes.map(({ id, name: called, start }) => ({ id, name: called, start })), gives: [{ name: name.slice(0, 24), places: /[\/÷]/.test(found[2]) ? 2 : 0, from }] };
+}
+// "water the plants every 3 days", "stretch every 45 minutes", "call home at 19:30": a helper, from its time.
+function helperFromWords(text) {
+  const days = /\bevery (\d+) days?\b|\bevery (other )?day\b|\bdaily\b/i.exec(text);
+  const minutes = /\bevery (\d+) ?(min|minutes?|hours?)\b|\bevery hour\b/i.exec(text);
+  const times = [...text.matchAll(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g)].map((m) => `${m[1]}:${m[2]}`);
+  const free = /\bwhen (i am|i'm|i’m) free\b/i.test(text);
+  const when = days ? { kind: 'days', number: days[1] ? Number(days[1]) : days[2] ? 2 : 1 } : minutes ? { kind: 'every', number: minutes[1] ? Number(minutes[1]) * (/hour/i.test(minutes[2]) ? 60 : 1) : 60 }
+    : times.length && /\bat\b/i.test(text) ? { kind: 'at', times } : free ? { kind: 'gap', number: 20 } : null;
+  if (!when) return null;
+  const purpose = text.trim().replace(/\s+/g, ' ');
+  const what = purpose.replace(/\b(every (\d+ )?(other )?(days?|min(utes?)?|hours?)|daily|at ([01]?\d|2[0-3])[:.][0-5]\d(,? ?(and )?([01]?\d|2[0-3])[:.][0-5]\d)*|when (i am|i'm|i’m) free)\b/gi, '').replace(/\s+/g, ' ').replace(/^[\s,.]+|[\s,.]+$/g, '');
+  return { title: what.split(' ').slice(0, 3).join(' '), purpose: /[.!?]$/.test(purpose) ? purpose : `${purpose}.`, when, give: { kind: 'show' }, options: [{ label: what.split(' ').slice(0, 3).join(' ') || 'It', piece: 'prompt', items: [what || purpose] }] };
+}
+const QUIET_REQUEST = (words, t, P) => [
+  'A person said something to their own device. Work out which of these they want, and answer with one JSON object and nothing else.',
+  `What they said: ${words.slice(0, 600)}`,
+  '{"keep": true} when they are telling it something to keep, not asking for anything to be made.',
+  '{"tool": TOOL} when they want something that takes a few numbers and gives numbers back. TOOL is described below.',
+  '{"helper": HELPER} when they want to be helped to do something at certain times. HELPER is described below.',
+  ...(t.home || isCalc(t) || isIdea(t) ? [] : ['{"design": DESIGN} when they describe how the thing in front of them should look or be laid out. DESIGN is described last.']),
+  'TOOL:', CALC_REQUEST.split('\n').slice(1, -1).join('\n'), 'HELPER:', HELPER_REQUEST.split('\n').slice(1, -1).join('\n'),
+  ...(t.home || isCalc(t) || isIdea(t) ? [] : ['DESIGN:', designRequest(t, P)])].join('\n');
+
+const ASKS_FOR = /^(please )?(make|build|create|give me|i want|i need|i'd like|i would like|something (that|to)|a (tool|helper|tracker|calculator|plan)|help me|remind me|track|design|turn (this|it)|can you|could you|show (me|it|this))\b/i;
+function show(made) {
+  thing = made.id;
+  person = 'you';
+  arranged = null;
+  meOpen = false;
+  table();
+}
+function receive(payload) {
+  const sent = { ...payload, mine: false };
+  const had = Object.values(THINGS).find((t) => t.payload && JSON.stringify(t.payload) === JSON.stringify(sent));
+  const made = had ?? addPayload(sent);
+  if (!made) return false;
+  show(made);
+  document.getElementById('opened').textContent = had ? 'You already had this.' : 'This was sent to you. Your own device made this screen of it.';
+  return true;
+}
+const kb = (bytes) => (bytes > 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} kB`);
+async function putIn(list, words) {
+  const files = [...list].slice(0, 12);
+  const note = document.getElementById('opened');
+  if (files.some((file) => /\.html?$/i.test(file.name))) return opened(files);
+  const calendar = files.find((file) => /\.ics$/i.test(file.name));
+  if (calendar) {
+    const link = calendarLink(calendar.name, await calendar.text());
+    if (link) { me.links.calendar = link; syncLinks(); save(); table(); }
+    note.textContent = link ? `Your calendar is connected: ${link.events} events read. Only the hours that are taken are kept.` : 'No timed events were found in that calendar file.';
+    return undefined;
+  }
+  const items = [];
+  for (const file of files) {
+    if (file.type.startsWith('image/')) { const data = await pictureFrom(file); if (data) items.push({ t: 'image', name: file.name, data, says: words }); }
+    else if (/\.(csv|tsv)$/i.test(file.name) && tableFrom(file.name, await file.text())) items.push({ t: 'data', name: file.name, csv: (await file.text()).slice(0, 200000) });
+    else if (/\.(txt|md)$/i.test(file.name)) items.push({ t: 'text', text: (await file.text()).slice(0, 8000) });
+    else items.push({ t: 'file', name: file.name, size: kb(file.size), says: words });
+  }
+  if (words && !items.some((item) => item.says === words)) items.unshift({ t: 'text', text: words });
+  return keep(items, words || files[0].name.replace(/\.[^.]+$/, ''));
+}
+// What is said or put in is kept: in the place that is open, or in a new one.
+function keep(items, title) {
+  const t = THINGS[thing];
+  const made = t.place && t.payload?.mine ? extendPlace(t, items) : addPayload({ k: 'place', title: title.split(/(?<=[.!?])\s/)[0].slice(0, 60), items, mine: true });
+  if (!made) { document.getElementById('opened').textContent = 'There was nothing in that to keep.'; return undefined; }
+  show(made);
+  document.getElementById('opened').textContent = t.place && t.payload?.mine ? 'Added to this place.' : 'Kept, as a place of its own. Say more or put more in to add to it.';
+  return made;
+}
+async function saidIt(text, files = []) {
+  const words = text.trim();
+  const t = THINGS[thing];
+  const P = people.you;
+  const note = document.getElementById('opened');
+  if (files.length) return putIn(files, words);
+  if (!words) return undefined;
+  // The few words the app itself answers to.
+  if (/^(me|close)$/i.test(words)) { meOpen = /^me$/i.test(words) && !meOpen; maker(null); asPanel(false); return table(); }
+  if (/^home$/i.test(words)) { thing = 'home'; arranged = null; meOpen = false; asPanel(false); return table(); }
+  if (/^as$/i.test(words) && !t.home) return asPanel(true);
+  if (meOpen) { meOpen = false; }
+  if (/tessera1:/.test(words)) return receive(fromToken(words) ?? {}) || (note.textContent = 'That held nothing this can read.');
+  if (!t.home) {
+    if (/^(send|share|pass)\b/i.test(words)) return copyToSend(t);
+    // A form is asked for in a few words or with a word that asks; a sentence that only mentions a table is a sentence.
+    const wished = /^(as|show|make|turn|let me|give me|i want|just)\b/i.test(words) || words.split(/\s+/).length <= 3 ? formWished(t, P, words) : null;
+    if (wished?.form) { stateOf('you').form = wished.form; arranged = null; return table(); }
+    if (wished?.why) { note.textContent = wished.why; return undefined; }
+  }
+  const tool = toolFromWords(words);
+  if (tool) { const made = addPayload({ k: 'calc', raw: tool, mine: true }); if (made) return show(made); }
+  const helper = helperFromWords(words);
+  if (helper) { const made = addPayload({ k: 'idea', raw: helper, mine: true }); if (made) return show(made); }
+  // Words that tell it something are kept as they are and go nowhere. Only words that ask for something to be made are put to a model.
+  if (sample && ASKS_FOR.test(words)) {
+    note.textContent = 'Working it out…';
+    try {
+      const got = objectIn((await sample(QUIET_REQUEST(words, t, P), { cache: false })).text ?? '') ?? {};
+      note.textContent = '';
+      const made = got.tool ? addPayload({ k: 'calc', raw: got.tool, mine: true }) : got.helper ? addPayload({ k: 'idea', raw: got.helper, mine: true }) : null;
+      if (made) return show(made);
+      if (got.design && !t.home && !isCalc(t) && !isIdea(t) && designFrom(t, P, got.design)) return design(got.design, 'Designed from what you said');
+    } catch { note.textContent = ''; }
+  }
+  return keep([{ t: 'text', text: words }], words);
+}
 
 // ---- a whole screen somebody designs (a model): a tree of groups and pieces, and a look for it ---------
 // Groups set things under one another, side by side or in a grid, on a plain, raised or coloured ground.
@@ -2755,7 +3019,7 @@ const NODE_GRAMMAR = [
 const answerShape = () => [
   'Answer with one JSON object and nothing else: {"look": {"hue": 0 to 359, "dark": true or false, "face": FACE, "radius": 6, 14, 22 or 30, "taste": TASTE}, "layout": {"type": "stack", "items": [NODE, ...]}, "why": ["one short sentence for each choice, at most 4"]}',
   `FACE is one of ${Object.keys(FACES).map((name) => `"${name}"`).join(', ')}: wide display, plain sans, heavy grotesque, round, soft, serif.`,
-  'TASTE, any of it or none: {"edge": "filled", "lined" or "flat" (how a card is edged), "title": "big", "caps" or "ruled", "ground": "solid", "tint" or "dots", "button": "pill" or "block"}.'];
+  'TASTE, or leave it out: {"cut": "sheet" (no boxes: type, space and hairlines), "blocks" (every piece a full-width band) or "soft" (rounded surfaces)}.'];
 const designRequest = (t, P) => [
   'Design one whole screen for one person from the statements below. You decide what is shown, how it is grouped, what is large, and how it looks. You type no facts.',
   ...answerShape(),
@@ -2783,20 +3047,20 @@ const helperDesignRequest = (idea, P, st) => [
   'After you answer, a program lays your design over the helper: a piece you leave out is still shown, after yours; a piece you name that the helper does not have is passed over.',
   `The person reads ${languageName(P.language)} and is on a phone, narrow.`].join('\n');
 // One screen designed this way before the page was published, for the first thing, to show the reach of it.
-const SAMPLE_DESIGN = { look: { hue: 268, dark: true, face: 'grot', radius: 30, taste: { edge: 'filled', title: 'big', ground: 'tint', button: 'pill', figures: 'number' } }, why: ['The question sits on the strong colour because it is the one thing asked.', 'The two results stand side by side, each drawn its own way.'],
+const SAMPLE_DESIGN = { look: { hue: 268, dark: true, face: 'grot', radius: 30, taste: { cut: 'soft', figures: 'number' } }, why: ['The question sits on the strong colour because it is the one thing asked.', 'The two results stand side by side, each drawn its own way.'],
   layout: { type: 'stack', items: [{ type: 'title', text: 'Four days, same work' },
     { type: 'grid', cols: 2, items: [{ piece: 'figure', of: 's1.work', form: 'Ring' }, { piece: 'figure', of: 's2.sick', form: 'picture' }] },
     { type: 'stack', tone: 'accent', items: [{ piece: 'question', of: 'a1' }, { piece: 'answer', of: 'a1' }] },
     { type: 'row', items: [{ piece: 'figure', of: 'd2.low', form: 'Lollipops' }, { piece: 'date', of: 'k1.due' }] },
     { piece: 'say', of: 'd3', head: 'What team leads saw', size: 's' }] } };
 // And one for a helper. It names every piece a helper may have: those a given helper lacks are passed over.
-const SAMPLE_HELPER_DESIGN = { look: { hue: 152, dark: false, face: 'round', radius: 30, taste: { edge: 'lined', title: 'ruled', ground: 'dots', button: 'pill' } }, why: ['What to do now sits on the strong colour, with its one button.', 'When it happens is kept small, underneath.'],
+const SAMPLE_HELPER_DESIGN = { look: { hue: 152, dark: false, face: 'round', radius: 30, taste: { cut: 'sheet' } }, why: ['What to do now sits on the strong colour, with its one button.', 'When it happens is kept small, underneath.'],
   layout: { type: 'stack', items: [{ piece: 'name', size: 'l' },
     { type: 'stack', tone: 'accent', items: [{ piece: 'cards' }, { piece: 'chords' }, { piece: 'prompt' }, { piece: 'list' }, { piece: 'steps' }, { piece: 'timer' }, { piece: 'counter' }] },
     { type: 'title', text: 'When' },
     { type: 'stack', items: [{ piece: 'week', size: 's' }, { piece: 'morning', size: 's' }, { piece: 'hours', size: 's' }, { piece: 'times', size: 's' }, { piece: 'days', size: 's' }] }] } };
 // And one for a small tool. It names the pieces of both tools that are built in.
-const SAMPLE_CALC_DESIGN = { look: { hue: 28, dark: true, face: 'wide', radius: 22, taste: { edge: 'flat', title: 'caps', ground: 'solid', button: 'block' } }, why: ['The answer comes first and large, on the strong colour.', 'What it takes sits in two columns beneath.'],
+const SAMPLE_CALC_DESIGN = { look: { hue: 28, dark: true, face: 'wide', radius: 22, taste: { cut: 'blocks' } }, why: ['The answer comes first and large, on the strong colour.', 'What it takes sits in two columns beneath.'],
   layout: { type: 'stack', items: [{ piece: 'about' }, { type: 'stack', tone: 'accent', items: [{ piece: 'result', of: 0, size: 'l' }] },
     { type: 'grid', cols: 2, items: [{ piece: 'enter', of: 'total' }, { piece: 'enter', of: 'people' }, { piece: 'enter', of: 'km' }, { piece: 'enter', of: 'min' }] }, { piece: 'enter', of: 'tip' },
     { type: 'row', items: [{ piece: 'result', of: 1 }, { piece: 'result', of: 2 }] }, { piece: 'keep' }, { piece: 'over' }] } };
@@ -2819,9 +3083,9 @@ function keepDesign(raw) {
   return true;
 }
 const KEPT_NOTE = ' It is kept on this device for this thing, until you go back or change what the device knows.';
-async function design(sampled) {
+async function design(sampled, from) {
   const t = THINGS[thing];
-  const by = sampled ? 'A screen a model designed before this page was published' : 'Designed by Claude';
+  const by = from ?? (sampled ? 'A screen a model designed before this page was published' : 'Designed by Claude');
   if (isIdea(t) || isCalc(t)) {
     const P = people[person];
     const st = stateOf(person);
@@ -2905,6 +3169,7 @@ function thingFromPayload(p) {
       if (mine.length) Object.assign(HELPER_START[idea.id].you, { made: true, answers: { ...HELPER_START[idea.id].you.answers, own: mine } });
       return idea;
     }
+    if (p.k === 'place') { const place = placeFrom(p); if (place && !p.mine) place.from = short(p.from, 20) || 'someone'; return place; }
     if (p.k === 'calc') { const calc = calcFrom(p.raw, p.mine ? 'you' : null); if (calc && !p.mine) calc.from = short(p.from, 20) || 'someone'; return calc; }
     if (p.k === 'text' && typeof p.text === 'string') return thingFromText(p.text.slice(0, 20000), p.shaped ? shapedFrom(p.shaped, p.text) ?? undefined : undefined);
     if (p.k === 'container' && typeof p.html === 'string') { const t = thingFrom(p.html, p.files && typeof p.files === 'object' ? p.files : {}); return t.units.length ? t : null; }
@@ -2922,6 +3187,8 @@ function addPayload(p, keep = true) {
 }
 function sendable(t) {
   const name = people.you.name === 'You' ? 'a friend' : people.you.name;
+  // A picture stays on the device it was put into: what was said about it travels, the picture does not.
+  if (t.payload?.k === 'place') return { ...t.payload, mine: undefined, from: name, items: t.payload.items.map((item) => (item.t === 'image' ? { t: 'file', name: item.name, says: item.says } : item)) };
   if (t.payload) return { ...t.payload, mine: undefined, own: undefined, from: name };
   return SOURCES[t.id] ? { k: 'container', html: SOURCES[t.id].html, files: SOURCES[t.id].files } : null;
 }
@@ -2937,15 +3204,7 @@ function arrive() {
   history.replaceState(null, '', location.pathname + location.search);
   const payload = fromToken(hash);
   if (!payload) { document.getElementById('opened').textContent = 'That link held nothing this can read.'; return; }
-  const sent = { ...payload, mine: false };
-  const had = Object.values(THINGS).find((t) => t.payload && JSON.stringify(t.payload) === JSON.stringify(sent));
-  const made = had ?? addPayload(sent);
-  if (!made) { document.getElementById('opened').textContent = 'That link held nothing this can read.'; return; }
-  thing = made.id;
-  person = 'you';
-  arranged = null;
-  table();
-  document.getElementById('opened').textContent = had ? 'You already had this.' : 'This was sent to you. Your own device made this screen of it.';
+  if (!receive(payload)) document.getElementById('opened').textContent = 'That link held nothing this can read.';
 }
 function copyToSend(t) {
   const note = document.getElementById('opened');
@@ -3176,7 +3435,7 @@ const stageScale = (outer, device) => {
   const room = document.getElementById('stage').clientWidth;
   return device === 'desk' ? Math.max(0.72, Math.min(1, room / outer[0])) : Math.min(1, room / outer[0]);
 };
-const nameOfScreen = (spec, mine) => (spec.tree ? 'Designed whole by a model, checked here.' : spec.by === 'Claude' ? 'Arranged by Claude, checked here.'
+const nameOfScreen = (spec, mine) => (spec.tree ? (comparing ? 'Designed whole by a model, checked here.' : 'Designed from what you said, and checked here.') : spec.by === 'Claude' ? (comparing ? 'Arranged by Claude, checked here.' : 'Arranged from what you said, and checked here.')
   : ({ calc: 'A tool made into their own screen. No code came with it.', home: 'Everything of theirs, on one screen made for them.', talk: 'Before anything else, it asks.', bench: 'The data is the screen.', deck: 'One thing to a screen.', glance: 'A glance, then sound.', setup: 'An idea, before it is made.', tool: mine ? 'The maker’s own helper.' : 'Their own version of the idea.' })[spec.layout]
   ?? (spec.blocks[0]?.piece === 'question' ? 'The question is the screen.' : spec.blocks[0]?.piece === 'answered' ? 'Answered. What happens next.' : 'The page, in the author’s order.'));
 const kindOfScreen = (spec) => (['todo', 'numbers'].includes(spec.form) ? FORMS[spec.form].name : null) ?? ({ calc: 'A tool', design: 'Designed', home: 'A home', talk: 'Being asked', bench: 'The data', deck: 'A story', glance: 'A glance', setup: 'Being asked', tool: 'Their helper' })[spec.layout] ?? (spec.blocks[0]?.piece === 'question' ? 'The question' : 'A page');
@@ -3216,18 +3475,19 @@ function about() {
         h('div', { class: 'opts' }, options.map(([value, text]) => h('button', { type: 'button', class: 'opt', 'aria-pressed': String(P[key] === value), text, on: { click: () => learn({ [key]: value }) } }))))),
       h('div', { class: 'know-row' }, h('span', { text: 'Look' }), h('div', { class: 'opts' }, Object.keys(LOOKS).map(look),
         h('button', { type: 'button', class: 'opt', 'aria-pressed': String(typeof P.look !== 'string'), text: 'One of their own', on: { click: () => learn({ look: { seed: String(Math.random()) } }) } }))),
-      person === 'you' ? [h('p', { class: 'who', text: [told('said', 'You said'), told('learned', 'It learned from what you do'), told('ai', 'Claude said')].filter(Boolean).join(' ') || 'Nothing yet. It is as the author wrote it until you say, or it learns.' }),
+      person === 'you' ? [h('p', { class: 'who', text: [told('said', 'You said'), told('learned', 'It learned from what you do'), told('ai', 'It was said for you')].filter(Boolean).join(' ') || 'Nothing yet. It is as the author wrote it until you say, or it learns.' }),
         h('button', { type: 'button', class: 'textlink', id: 'forget', text: 'Forget everything about me, and all I made or was sent', on: { click: forgetAll } })]
         : same ? null : h('button', { type: 'button', class: 'textlink', text: `Back to ${PRESETS[person].name} as first known`, on: { click: () => { people[person] = JSON.parse(JSON.stringify(PRESETS[person])); arranged = null; table(); } } })),
     person === 'you' ? linksPanel() : null,
-    (thing === 'week' || (isIdea(t) && P.device !== 'watch' && spec.layout === 'tool') || (isCalc(t) && P.device !== 'watch' && P.take !== 'one')) && !spec.tree ? h('button', { type: 'button', class: 'textlink', id: 'sample-design', text: 'See this designed whole by a model', on: { click: () => design(isCalc(t) ? SAMPLE_CALC_DESIGN : isIdea(t) ? SAMPLE_HELPER_DESIGN : SAMPLE_DESIGN) } }) : null,
+    // In the app nothing names a model: what a person wants they say, in the line at the bottom. These stay in the table of sample people, where the workings are shown.
+    comparing && (thing === 'week' || (isIdea(t) && P.device !== 'watch' && spec.layout === 'tool') || (isCalc(t) && P.device !== 'watch' && P.take !== 'one')) && !spec.tree ? h('button', { type: 'button', class: 'textlink', id: 'sample-design', text: 'See this designed whole by a model', on: { click: () => design(isCalc(t) ? SAMPLE_CALC_DESIGN : isIdea(t) ? SAMPLE_HELPER_DESIGN : SAMPLE_DESIGN) } }) : null,
     !sample && modelSaid && spec.by === 'Claude' ? h('p', { class: 'who', id: 'model-said', 'aria-live': 'polite', text: modelSaid }) : null,
-    sample && ((isIdea(t) && spec.layout === 'tool') || (isCalc(t) && P.take !== 'one')) && P.device !== 'watch' ? h('div', { class: 'model' }, h('h3', { text: 'Or let Claude do it' }),
+    comparing && sample && ((isIdea(t) && spec.layout === 'tool') || (isCalc(t) && P.take !== 'one')) && P.device !== 'watch' ? h('div', { class: 'model' }, h('h3', { text: 'Or let Claude do it' }),
       h('div', { class: 'model-row' }, h('button', { type: 'button', class: 'go', id: 'design', text: 'Let Claude design the whole screen', on: { click: () => design() } })),
       h('p', { id: 'model-said', 'aria-live': 'polite', text: modelSaid ?? 'Claude is sent what it is for and the names of its pieces. Of you, only your language.' }),
       spec.by === 'Claude' ? h('button', { type: 'button', class: 'textlink', text: 'Back to the device’s own arrangement', on: { click: backToOwn } }) : null) : null,
-    spec.by === 'Claude' && !sample ? h('button', { type: 'button', class: 'textlink', text: 'Back to the device’s own arrangement', on: { click: backToOwn } }) : null,
-    sample && !isIdea(t) && !isCalc(t) ? h('div', { class: 'model' }, h('h3', { text: 'Or let Claude do it' }),
+    spec.by === 'Claude' && !(comparing && sample) ? h('button', { type: 'button', class: 'textlink', text: 'Back to the device’s own arrangement', on: { click: backToOwn } }) : null,
+    comparing && sample && !isIdea(t) && !isCalc(t) ? h('div', { class: 'model' }, h('h3', { text: 'Or let Claude do it' }),
       h('textarea', { id: 'described', placeholder: person === 'you' ? 'Describe yourself. For example: I read Ukrainian and English, I want the gist first, numbers as pictures, and I am usually on my phone.' : 'Describe someone. For example: my grandmother; reads Ukrainian, sees poorly, wants only what she has to do.', 'aria-label': 'Describe someone', on: { input: (event) => { said = event.target.value; } } }, said),
       h('div', { class: 'model-row' }, h('button', { type: 'button', class: 'go', id: 'describe', text: person === 'you' ? 'That is me' : 'Make their screen', on: { click: describe } }),
         t.home ? null : [h('button', { type: 'button', class: 'go', id: 'arrange', text: `Let Claude arrange ${P.name === 'You' ? 'mine' : `${P.name}’s`}`, on: { click: arrange } }),
@@ -3238,10 +3498,10 @@ function about() {
       spec.by === 'Claude' ? h('button', { type: 'button', class: 'textlink', text: 'Back to the device’s own arrangement', on: { click: backToOwn } }) : null) : null);
   put(document.getElementById('about'),
     h('div', {}, h('h3', { text: 'Why this screen' }), h('div', { class: 'whys' }, spec.why.map((text) => h('p', { text }))),
-      spec.dropped ? h('p', { class: 'who', text: `${spec.dropped} of Claude’s blocks named something that is not there, and were left out.` }) : null),
+      spec.dropped ? h('p', { class: 'who', text: `${spec.dropped} of its blocks named something that is not there, and were left out.` }) : null),
     h('div', {}, h('h3', { text: 'Made of' }), h('div', { class: 'pieces' }, h('span', { class: 'piece fresh', text: spec.form ? `${FORMS[spec.form].name}, as asked` : LAYOUT_NAMES[spec.layout] }), pieces.map((id) => h('span', { class: 'piece', text: KIT[id] })),
-      Object.keys(RECIPES).map((name) => h('span', { class: 'piece fresh', text: `${name}, made by Claude` }))),
-      h('p', { class: 'who', text: `${Object.entries(tasteFrom((spec.look ? lookFrom(spec.look) : lookOf(P)).taste)).filter(([key]) => key !== 'figures' && key !== 'home').map(([, kind]) => ({ filled: 'Filled cards', lined: 'Outlined cards', flat: 'No cards, only rules', big: 'large titles', caps: 'titles in small capitals', ruled: 'underlined titles', solid: 'a plain ground', tint: 'a tinted ground', dots: 'a dotted ground', pill: 'round buttons', block: 'square buttons' })[kind]).join(', ')}. In ${spec.look ? 'a look its designer chose' : lookOf(P).name === 'Their own' ? 'a look of their own' : `the look “${lookOf(P).name}”`}.${spec.total ? ` ${spec.shown} of ${spec.total} statements.` : ''}` })),
+      Object.keys(RECIPES).map((name) => h('span', { class: 'piece fresh', text: `${name}, a piece drawn for the kit` }))),
+      h('p', { class: 'who', text: `${{ sheet: 'Set as a sheet: no boxes, only type, space and fine lines', blocks: 'Set in blocks: every piece a band across the screen', soft: 'Set soft: pieces gathered on rounded surfaces' }[tasteFrom((spec.look ? lookFrom(spec.look) : lookOf(P)).taste).cut]}. In ${spec.look ? 'a look its designer chose' : lookOf(P).name === 'Their own' ? 'a look of their own' : `the look “${lookOf(P).name}”`}.${spec.total ? ` ${spec.shown} of ${spec.total} statements.` : ''}` })),
     h('details', { class: 'how' }, h('summary', { text: 'The screen as data' }), h('pre', { class: 'spec', text: JSON.stringify({ arrangedBy: spec.by, layout: spec.layout, device: spec.device, look: spec.look ?? P.look, ...(spec.tree ? { tree: spec.tree } : { blocks: spec.blocks }) }, null, 1) })),
     sentBlock(t));
   if (person === 'you') saveSoon();
@@ -3269,8 +3529,8 @@ function linksPanel() {
       canNotify() ? opt(tell === 'notification', 'A notification', async () => { if (await Notification.requestPermission() === 'granted') link({ tell: 'notification' }); else { linkSaid = 'This browser did not allow notifications, so nothing changed.'; about(); } }, 'link-notify') : null)),
     h('p', { class: 'who', id: 'tell-said', text: !tell ? 'It does not tell you. A helper sits in your day and waits to be opened.' : tell === 'aloud' ? 'A tone and the words, while this page is open.' : 'A notification from this browser, while this page is open.' }),
     connectors ? h('p', { class: 'who', id: 'claude-said', text: 'Your Claude: this page can save a new document to your Claude Docs when you ask. It cannot read your documents.' }) : null,
-    h('div', { class: 'know-row' }, h('span', { text: 'Your own AI' }), h('div', { class: 'opts' }, opt(false, 'Save a file for it', async () => { aiSaid = await saveForAI(); about(); }, 'save-ai'))),
-    h('p', { class: 'who', id: 'ai-said', text: aiSaid ?? `One file, for any AI that runs Tessera’s MCP server: what this device knows about you (${KNOWS.length} things, in words), ${forMyAI().helpers.length} of your helpers with your answers, ${forMyAI().tools.length} tools, and ${me.tokens.length} things you made or were sent. Your calendar is not in it.` }));
+    h('div', { class: 'know-row' }, h('span', { text: 'Elsewhere' }), h('div', { class: 'opts' }, opt(false, 'Save a file of it', async () => { aiSaid = await saveForAI(); about(); }, 'save-ai'))),
+    h('p', { class: 'who', id: 'ai-said', text: aiSaid ?? `One file, for any program of yours that reads Tessera: what this device knows about you (${KNOWS.length} things, in words), ${forMyAI().helpers.length} of your helpers with your answers, ${forMyAI().tools.length} tools, and ${me.tokens.length} things you made or were sent. Your calendar is not in it.` }));
 }
 function focus() {
   shown?.stop();
@@ -3279,7 +3539,8 @@ function focus() {
   put(document.getElementById('stage'), h('div', { class: 'stage-scroll' }, shown.node), tight ? h('p', { class: 'slide', text: 'This screen was made for a wide display. Slide it sideways.' }) : null);
   for (const button of document.querySelectorAll('.person')) button.setAttribute('aria-pressed', String(button.dataset.person === person));
   // In the app the bar is part of the screen: it wears whatever look the screen above it wears.
-  if (!comparing) wear(document.getElementById('bar'), shown.spec().look ? lookFrom(shown.spec().look) : lookOf(people.you));
+  if (!comparing) for (const id of ['say', 'say-hints']) wear(document.getElementById(id), shown.spec().look ? lookFrom(shown.spec().look) : lookOf(people.you));
+  bar();
   about();
 }
 function open(id) {
@@ -3308,7 +3569,7 @@ function asPanel(open) {
         const got = objectIn((await sample(WISH_REQUEST(t, P, text), { cache: false })).text ?? '');
         if (Object.hasOwn(forms, got?.form ?? '') && !forms[got.form].fits(t, P)) found = { form: got.form };
         // No form was meant: what came back may be a screen designed for those words, held to the same promises as any.
-        else if (forms === FORMS && designFrom(t, P, got)) { delete st.form; wishSaid = null; panel.hidden = true; return design(got); }
+        else if (forms === FORMS && designFrom(t, P, got)) { delete st.form; wishSaid = null; panel.hidden = true; return design(got, 'Designed from what you said'); }
       } catch { /* no model just now: the words alone decide */ }
     }
     if (found?.form) return be(found.form);
@@ -3325,12 +3586,11 @@ function asPanel(open) {
 }
 function bar() {
   const t = THINGS[thing];
-  const button = (id, text, on, click) => h('button', { type: 'button', id: `bar-${id}`, 'aria-pressed': String(on), text, on: { click } });
-  const go = (id) => () => { thing = id; arranged = null; meOpen = false; maker(null); asPanel(false); table(); };
   put(document.getElementById('bar'), comparing ? h('button', { type: 'button', id: 'to-app', text: 'Back to my app', on: { click: () => { comparing = false; thing = 'home'; table(); } } })
-    : [button('home', 'Home', thing === 'home' && !meOpen, go('home')), button('add', 'Add', false, () => { meOpen = false; table(); maker('helper'); }),
-      t.home || !me.talked ? null : button('as', 'As', false, () => { meOpen = false; maker(null); table(); asPanel(true); }),
-      t.home || !me.talked ? null : button('send', 'Send', false, () => copyToSend(t)), button('me', 'Me', meOpen, () => { meOpen = !meOpen; maker(null); asPanel(false); table(); })]);
+    : []);
+  // In the app there is one line and nothing else. What else can be said here is offered as words while the line is in use.
+  const fitting = t.home ? [] : Object.entries(formsFor(t)).filter(([id, form]) => !form.fits(t, people.you) && id !== (shown?.spec().form ?? FORM_OF_LAYOUT[shown?.spec().layout])).slice(0, 3).map(([id]) => ({ page: formsFor(t) === WORKING_FORMS ? 'what it is' : 'a page', story: 'a story', todo: 'a to-do list', numbers: 'other numbers', glance: 'a glance', data: 'the data', use: 'use it' })[id]);
+  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home || !me.talked ? [] : ['send', ...fitting]), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => saidIt(words) } })));
 }
 function table() {
   const shell = document.querySelector('.shell');
@@ -3516,6 +3776,18 @@ Promise.resolve(window.claude?.use?.('sample')).then((got) => { if (typeof got =
 Promise.resolve(window.claude?.use?.('tts')).then((got) => { if (typeof got?.speak === 'function') speaker = got; }).catch(() => {});
 Promise.resolve(window.claude?.use?.('downloads')).then((got) => { if (typeof got?.save === 'function') saver = got; }).catch(() => {});
 Promise.resolve(window.claude?.use?.('mcp')).then((got) => { if (typeof got?.callTool === 'function') { connectors = got; about(); } }).catch(() => {});
+// The one way in: what is said in the line, what is picked, and what is dropped anywhere on the page.
+const sayText = document.getElementById('say-text');
+const sayFiles = document.getElementById('say-files');
+document.getElementById('say').addEventListener('submit', (event) => { event.preventDefault(); const words = sayText.value; sayText.value = ''; saidIt(words); });
+document.getElementById('say-add').addEventListener('click', () => sayFiles.click());
+document.getElementById('say-home').addEventListener('click', () => saidIt('home'));
+put(document.getElementById('say-home'), ic('home'));
+put(document.getElementById('say-add'), ic('plus'));
+sayFiles.addEventListener('change', () => { const words = sayText.value; sayText.value = ''; saidIt(words, [...sayFiles.files]); sayFiles.value = ''; });
+window.addEventListener('dragover', (event) => event.preventDefault());
+window.addEventListener('drop', (event) => { event.preventDefault(); if (!comparing && event.dataTransfer.files.length) saidIt('', [...event.dataTransfer.files]); });
+
 </script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');</script>
 </body>
