@@ -449,6 +449,37 @@ details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .s .p-cell { width: 100%; min-width: 0; height: 2.3em; padding: 0 0.5em; border: 0; border-radius: calc(min(var(--r), 8) * 1px); box-shadow: inset 0 0 0 1.5px var(--line); background: none; color: inherit; font: inherit; font-variant-numeric: tabular-nums; }
 .p-row-acts { display: flex; gap: 0.8em; align-items: center; flex-wrap: wrap; }
 /* A device's own taste: beyond colour and type, how things are edged, titled, grounded and pressed. */
+/* The surface: every thing a cell, used where it stands. */
+.l-surface { overflow-y: auto; padding: 46px 0 28px; }
+.sf-now { padding: 0 20px 20px; }
+.sf-now h1 { font: var(--dw) 2em/1.05 var(--display); letter-spacing: var(--track); margin: 0; font-variant-numeric: tabular-nums; }
+.sf-now p { margin: 0.4em 0 0; color: var(--dim); }
+.cell { border-top: 1px solid var(--line); overflow-wrap: break-word; }
+.s .cell-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1em; width: 100%; padding: 0.9em 20px 0.75em; }
+.cell-head strong { font: 600 1.05em/1.25 var(--text); min-width: 0; }
+.cell-head span { color: var(--dim); font-size: 0.87em; white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
+.cell.now .cell-head span { color: var(--accent); font-weight: 700; }
+.cell.open { background: color-mix(in oklab, var(--fg) 4%, transparent); }
+/* A helper's next moment draws near along the top of its cell. */
+.cell.timed { background: linear-gradient(var(--accent), var(--accent)) top left / calc(var(--near) * 100%) 2px no-repeat; transition: background-size 1s linear; }
+.s .sf-hit { display: grid; gap: 0.2em; width: 100%; text-align: left; padding: 0.7em 0; border-top: 1px solid var(--line); font-size: 1.05em; line-height: 1.35; }
+.s .sf-hit:first-child { border-top: 0; padding-top: 0; }
+.sf-hit small { color: var(--dim); font-size: 0.82em; }
+.l-surface .cell[data-id="said"] .cell-body { padding: 0 20px 1.1em; }
+.cell[data-id="said"] .p-voice { margin-top: 0.6em; }
+/* At a glance a tool's numbers sit side by side. */
+.cell:not(.open) .cell-body > .l-calc { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8em 0.7em; align-items: end; }
+.cell:not(.open) .cell-body > .l-calc > :not(.k-in), .cell:not(.open) .cell-body > .l-calc > .k-in:has(.h-opts) { grid-column: 1 / -1; }
+.cell.open .cell-head strong { font: var(--dw) 1.35em/1.12 var(--display); letter-spacing: var(--track); }
+.cell-body { padding: 0 20px 1.1em; }
+.l-surface[data-cut="blocks"] .cell-body { padding-left: 0; padding-right: 0; }
+.cell-body > .s { height: auto; padding: 0 !important; background: none !important; overflow: visible; }
+.cell-body > .s.l-deck, .cell-body > .s.l-glance { height: 30em; }
+.cell-body > .s:has(.p-sheet) { min-height: 26em; }
+.cell-body .p-title, .cell-body > .l-tool > .h-title:first-child, .cell-body > .l-calc > .h-title { display: none; }
+.cell:not(.open) .cell-body .p-q h2 { font-size: 1.2em; }
+.cell:not(.open) .cell-body .p-acts button { min-height: 46px; }
+.cell:not(.open) .cell-body .k-out.first strong { font-size: 1.9em; }
 /* In the app, what the device knows and what a thing can be are plain sheets in the person's own look: no panels, and a choice is a word, not a button. */
 .shell.app.me-open .focus, .shell.app #as:not([hidden]) { background: var(--bg); color: var(--fg); --muted: var(--dim); --panel: transparent; font: 15px/1.5 var(--text); padding: 46px 22px 28px; gap: 30px; }
 .shell.app.me-open .focus { grid-template-areas: "know" "rest" "head"; }
@@ -2489,6 +2520,8 @@ function resultText(give, inputs, language) {
 }
 // A tool + what the device knows -> a screen, as data. Same shape as `compose`.
 function composeCalc(calc, P, st) {
+  // At a glance a tool is what it takes and its first answer, nothing around them.
+  if (P.brief) return { layout: 'calc', device: P.device, by: 'the device', blocks: [...calc.takes.map((take) => ({ piece: 'enter', of: take.id })), { piece: 'result', of: 0 }, ...(calc.keeps ? [{ piece: 'keep' }] : [])], why: [] };
   const [who, Who] = P.name === 'You' ? ['you', 'You take'] : [P.name, `${P.name} takes`];
   const stepping = P.device === 'watch' || P.take === 'one';
   const few = P.amount === 'gist' && calc.gives.length > 1 && !st.all;
@@ -2512,7 +2545,7 @@ function composeCalc(calc, P, st) {
 function calcScreen(calc, pid, P, st, live, changed, designed) {
   const root = h('div', {});
   // Where it asks one thing to a screen there is nothing to lay a design over.
-  const laid = designed && P.device !== 'watch' && P.take !== 'one' ? designed : null;
+  const laid = designed && P.device !== 'watch' && P.take !== 'one' && !P.brief ? designed : null;
   const look = lookOfDesign(laid) ? lookFrom(lookOfDesign(laid)) : lookOf(P);
   let spec;
   st.inputs ??= calcStart(calc).inputs;
@@ -2527,7 +2560,7 @@ function calcScreen(calc, pid, P, st, live, changed, designed) {
       const take = calc.takes.find((one) => one.id === b.of);
       const field = take.options
         ? h('div', { class: 'h-opts' }, take.options.map(([value, text]) => h('button', { type: 'button', class: 'h-opt', 'aria-pressed': String(st.inputs[take.id] === value), text, on: { click: () => { st.inputs[take.id] = value; redraw(); } } })))
-        : h('div', { class: 'k-field' }, h('input', { type: 'number', inputmode: 'decimal', step: String(take.step), value: st.inputs[take.id] ?? '', 'aria-label': take.name, id: live ? `k-${take.id}` : null,
+        : h('div', { class: 'k-field' }, h('input', { type: 'number', inputmode: 'decimal', step: String(take.step), value: st.inputs[take.id] ?? '', 'aria-label': take.name, id: live && !P.brief ? `k-${take.id}` : null,
           on: { input: (event) => { const value = Number.parseFloat(event.target.value); st.inputs[take.id] = Number.isFinite(value) && Math.abs(value) <= 1e9 ? value : null; refresh(); } } }), take.unit ? h('span', { text: take.unit }) : null);
       return h('div', { class: 'k-in' }, h('span', { class: 'k-name', text: take.name }), field,
         b.step == null ? null : h('button', { type: 'button', class: 'h-go', text: b.step === calc.takes.length - 1 ? 'Work it out' : 'Next', on: { click: () => { st.at = b.step + 1; redraw(); } } }));
@@ -2905,9 +2938,10 @@ async function saidIt(text, files = []) {
   const note = document.getElementById('opened');
   if (files.length) return putIn(files, words);
   if (!words) return undefined;
+  note.textContent = '';
   // The few words the app itself answers to.
   if (/^(me|close)$/i.test(words)) { meOpen = /^me$/i.test(words) && !meOpen; maker(null); asPanel(false); return table(); }
-  if (/^home$/i.test(words)) { thing = 'home'; arranged = null; meOpen = false; asPanel(false); return table(); }
+  if (/^home$/i.test(words)) { thing = 'home'; arranged = null; meOpen = false; found = null; surfaceTop = 0; asPanel(false); return table(); }
   if (/^as$/i.test(words) && !t.home) return asPanel(true);
   if (meOpen) { meOpen = false; }
   if (/tessera1:/.test(words)) return receive(fromToken(words) ?? {}) || (note.textContent = 'That held nothing this can read.');
@@ -2919,8 +2953,15 @@ async function saidIt(text, files = []) {
     if (wished?.why) { note.textContent = wished.why; return undefined; }
   }
   const tool = toolFromWords(words);
-  if (tool) { const made = addPayload({ k: 'calc', raw: tool, mine: true }); if (made) return show(made); }
   const helper = helperFromWords(words);
+  if (!comparing && !tool && !helper) {
+    // A question is answered from everything held; a few words that name a thing are done to it.
+    // One short sentence that asks is a question to the device. Several sentences ending in one are something to keep.
+    if (QUESTION.test(words) && !ASKS_FOR.test(words) && words.split(/\s+/).length <= 12 && words.split(/(?<=[.!?])\s/).length === 1) { found = askedOf(words, P); thing = 'home'; return glide(table); }
+    const done = doneToHeld(words);
+    if (done) { found = null; show(done.t); note.textContent = done.said; return done.t; }
+  }
+  if (tool) { const made = addPayload({ k: 'calc', raw: tool, mine: true }); if (made) return show(made); }
   if (helper) { const made = addPayload({ k: 'idea', raw: helper, mine: true }); if (made) return show(made); }
   // Words that tell it something are kept as they are and go nowhere. Only words that ask for something to be made are put to a model.
   if (sample && ASKS_FOR.test(words)) {
@@ -3135,7 +3176,7 @@ async function design(sampled, from) {
 // ---- yours: the same engine as the thing itself. It learns one person, keeps their things, and has no
 // screen of its own: a home is composed for whoever holds the device, like everything else. ------------
 const ME_KEY = 'tessera-sketch:me';
-const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {} };
+const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {}, used: {}, hours: {} };
 // What you did with each thing is kept with the rest: your answers, a helper as you made it, a tool's
 // numbers and its record. A running timer and an open sheet are of the moment and are not.
 const keptStates = () => Object.fromEntries(Object.entries(states).filter(([key]) => key.endsWith('/you')).map(([key, st]) => [key, { ...st, left: undefined, sheet: undefined }]));
@@ -3362,6 +3403,233 @@ function talkScreen(P, done) {
   return { el: root, stop: () => {}, spec: () => spec };
 }
 
+// ---- the surface: one living screen ------------------------------------------------------------------
+// The app has no shelf and nothing is opened or closed. Everything a person holds is on one surface, each
+// thing as a cell that shows it at its most alive and is used right there: a question with its answer, a
+// tool with its numbers, a helper with its next moment. The cells are ordered by what matters now, and
+// the order moves with the clock and with what the person does. A cell unfolds in place into the whole
+// thing, in whatever form it has. What is said is answered from everything held, or done to it.
+const span = (minutes) => (minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`);
+const pendingAsk = (t, st) => t.units.find((u) => u.kind === 'ask' && u.must && u.ask.type === 'choice' && st.answers[u.id] == null);
+const calledOf = (t, P, st) => (isIdea(t) ? (st.made ? nameOf(t, P, st) : t.title ?? t.label.replace(/^A helper: /, '')) : t.title ?? t.label).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
+let surfaceTop = 0;
+let surfaced = false;
+let found = null;
+let talking = false;
+// A thing its person uses at about this hour, three times or more and more than at other hours, is usual now.
+function usualNow(id) {
+  const hours = me.hours[id];
+  if (!hours) return false;
+  const hour = new Date().getHours();
+  const near = [23, 0, 1].reduce((sum, d) => sum + (hours[(hour + d) % 24] ?? 0), 0);
+  return near >= 3 && near * 2 >= Object.values(hours).reduce((sum, n) => sum + n, 0);
+}
+function useNow(id) {
+  // One use an hour is counted, however many numbers are typed in it.
+  if (Date.now() - (me.used[id] ?? 0) > 1800000) { const hour = new Date().getHours(); (me.hours[id] ??= {})[hour] = Math.min(99, (me.hours[id][hour] ?? 0) + 1); }
+  me.used[id] = Date.now();
+  saveSoon();
+}
+// What matters now: every thing with how much it matters at this moment and the few words that say why.
+function mattersNow(P) {
+  const now = momentOf(P);
+  const untouched = !Object.keys(me.used).length;
+  return Object.values(THINGS).filter((t) => !t.home).map((t) => {
+    const st = stateFor(t.id, 'you');
+    let score = 25;
+    let meta = '';
+    let near = null;
+    if (isIdea(t)) {
+      const spec = st.made ? composeHelper(t, P, st, t.maker === 'you') : null;
+      const at = spec ? nextMoment(t, P, st, spec.source) : null;
+      if (!st.made) { score = 40; meta = 'an idea, not yours yet'; }
+      else if (at == null && spec.source === 'ask' && st.slot == null) { score = 78; meta = 'asks when you are free'; }
+      else if (at == null) { score = 30; meta = 'nothing more today'; }
+      else if (at - now.at <= 1) { score = 100; meta = 'now'; near = 1; }
+      else { score = 72 - Math.min(40, (at - now.at) / 30); meta = `at ${clock(at)} · in ${span(at - now.at)}`; near = Math.max(0, 1 - (at - now.at) / 60); }
+    } else if (isCalc(t)) {
+      const today = (st.log ?? []).filter((entry) => Date.now() - entry.at < 86400000).length;
+      // A record with nothing in it is no news in the morning, and matters as the day runs out.
+      score = t.keeps ? (today ? 35 : now.at >= 17 * 60 ? 75 : 42) : 45;
+      meta = t.keeps ? (today ? `${today} kept today` : 'nothing kept today') : resultText(t.gives[0], st.inputs, P.language);
+      // Before anything has been touched, something to play with comes first.
+      if (untouched && t.id === 'split') score = 90;
+    } else {
+      const ask = pendingAsk(t, st);
+      const iso = ask?.text.map((part) => part.v && t.values[part.v]).find((v) => v?.type === 'time')?.iso;
+      const days = iso ? Math.ceil((new Date(iso) - Date.now()) / 86400000) : null;
+      if (ask) { score = 80 + (days == null ? 0 : Math.max(0, 14 - Math.max(0, days))); meta = `waits on you${days == null ? '' : days < 0 ? ' · late' : days === 0 ? ' · today' : days === 1 ? ' · by tomorrow' : ` · by ${new Intl.DateTimeFormat(P.language, { day: 'numeric', month: 'short' }).format(new Date(iso))}`}`; }
+      else if (t.place) meta = `${t.units.length} in it`;
+      else meta = Object.keys(st.answers).length ? 'answered' : '';
+    }
+    const usual = usualNow(t.id) && score < 80;
+    return { id: t.id, meta: usual ? 'you use it about now' : meta, now: meta === 'now', waits: meta.startsWith('waits'), near, score: score + (usual ? 25 : 0) + 40 * Math.max(0, 1 - (Date.now() - (me.used[t.id] ?? 0)) / 600000) };
+  }).sort((a, b) => b.score - a.score);
+}
+
+// Everything held, as lines that can be found: each statement in its author's words, what a tool or a
+// helper is and does, and what a record adds up to.
+const STOP = new Set('the a an is are was were do does did to of in on at for and or it its my me i you your our we be been this that there with by from as what when where who whose how much many long far often which will can about any have has had so not no yes between each per'.split(' '));
+const keysOf = (words) => [...new Set((words.toLowerCase().match(/[\p{L}\d]{2,}/gu) ?? []).filter((word) => !STOP.has(word)).map((word) => (word.length > 3 ? word.replace(/s$/, '') : word)))];
+function heldLines(P) {
+  return Object.values(THINGS).filter((t) => !t.home).flatMap((t) => {
+    const st = stateFor(t.id, 'you');
+    const read = isCalc(t) || isIdea(t) ? asThing(t) : t;
+    const from = calledOf(t, P, st);
+    const lines = read.units.map((u) => ({ text: flat(read, parts(read, u.id, read.lang), read.lang), kinds: u.text.filter((part) => part.v).map((part) => read.values[part.v].type) }));
+    if (isCalc(t) && t.over) lines.push(...t.over.map((over) => ({ text: `${over.name}: ${overText(t, over, st.log ?? [], Date.now(), P.language)}`, kinds: ['data'] })));
+    return lines.map((line) => ({ ...line, id: t.id, from, about: `${from} ${t.label ?? ''}`.toLowerCase() }));
+  });
+}
+const QUESTION = /\?\s*$|^(when|what|where|who|whose|which|how (much|many|long|far|often))\b/i;
+// A question is answered with the statements held that speak of it, each in its own words and with where
+// it is from. Nothing is worked out or reworded here, so nothing can be made up.
+// ponytail: words are matched as written, with a plural s dropped. A model choosing among these lines is the step up.
+function askedOf(words, P) {
+  const keys = keysOf(words);
+  const wants = /^when\b|what time|which day/i.test(words) ? 'time' : /^how (much|many|long|far)\b/i.test(words) ? 'data' : null;
+  const lines = heldLines(P).map((line) => {
+    const text = line.text.toLowerCase();
+    return { ...line, score: keys.filter((key) => text.includes(key)).length * 2 + keys.filter((key) => line.about.includes(key)).length };
+  });
+  // “When” is answered by the dated statements of the thing the words name, whether or not they repeat its name.
+  const named = new Set(lines.filter((line) => line.score).map((line) => line.id));
+  for (const line of lines) if (wants && named.has(line.id) && line.kinds.includes(wants)) line.score += 3;
+  return { words, hits: lines.filter((line) => line.score > (keys.length > 2 ? 2 : 0)).sort((x, y) => y.score - x.score).slice(0, 4) };
+}
+// The one thing the words name, by a word of its title; null when they name none, or more than one equally.
+function heldNamed(words) {
+  const said = new Set(keysOf(words));
+  const named = Object.values(THINGS).filter((t) => !t.home).map((t) => ({ t, n: keysOf(`${t.title ?? ''} ${t.label ?? ''}`).filter((word) => word.length > 2 && said.has(word)).length })).filter((one) => one.n).sort((a, b) => b.n - a.n);
+  return named.length && (named.length === 1 || named[0].n > named[1].n) ? named[0].t : null;
+}
+// A few words that name a thing held are done to it: numbers go into a tool in the order it takes them,
+// yes or no answers what waits, and the name alone brings the thing up.
+// ponytail: only short sayings are read this way, so a sentence to keep that mentions a thing is still kept.
+function doneToHeld(words) {
+  const count = words.split(/\s+/).length;
+  const t = count <= 8 ? heldNamed(words) : null;
+  if (!t) return null;
+  const st = stateFor(t.id, 'you');
+  const numbers = (words.match(/\d+(?:[.,]\d+)?/g) ?? []).map((number) => Number(number.replace(',', '.')));
+  const fields = isCalc(t) ? t.takes.filter((take) => !take.options) : [];
+  const ask = isCalc(t) || isIdea(t) ? null : pendingAsk(t, st);
+  const option = ask?.ask.options.find((one) => words.toLowerCase().startsWith(`${one.toLowerCase()} `));
+  if (fields.length && numbers.length && numbers.length <= fields.length) numbers.forEach((number, i) => { st.inputs[fields[i].id] = number; });
+  else if (option) st.answers[ask.id] = option;
+  else if (count > 3 || t.id === thing) return null;
+  useNow(t.id);
+  return { t, said: option ? `Answered: ${option}. Change it there if that is not what you meant.` : '' };
+}
+
+// The surface is drawn again whole; what stays is carried across so that cells glide to where they now belong.
+function glide(redraw) {
+  const before = new Map([...document.querySelectorAll('#stage .cell')].map((node) => [node.dataset.id, node.getBoundingClientRect().top]));
+  redraw();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (const node of document.querySelectorAll('#stage .cell')) {
+    const was = before.get(node.dataset.id);
+    const moved = was == null ? 0 : was - node.getBoundingClientRect().top;
+    if (was == null) node.animate([{ opacity: 0, transform: 'translateY(-12px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+    else if (Math.abs(moved) > 1) node.animate([{ transform: `translateY(${moved}px)` }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+  }
+}
+// A thing at a glance: the one part of it that is alive, to be used without unfolding it.
+function glimpseOf(t, P, st, changed) {
+  if (isIdea(t)) return null;
+  if (isCalc(t)) return calcScreen(t, 'you', { ...P, brief: true }, st, true, changed);
+  const spec = compose(t, { ...P, amount: 'gist', asksFirst: true, take: 'read', device: 'phone' }, { ...st, form: undefined });
+  const question = spec.blocks.find((b) => b.piece === 'question');
+  const blocks = question ? [question, { piece: 'answer', of: question.of }] : spec.blocks.filter((b) => ['answered', 'figure', 'say', 'ask', 'date'].includes(b.piece)).slice(0, 1);
+  return blocks.length ? screen(t, P, st, true, changed, { ...spec, layout: 'board', blocks }, null) : null;
+}
+// The thing itself, whole, in the form it has for its person.
+function wholeOf(t, P, st, changed) {
+  if ((isCalc(t) || isIdea(t)) && st.form === 'page') return screen(asThing(t), P, (st.reading ??= freshState()), true, changed, null, null);
+  if (isCalc(t)) return calcScreen(t, 'you', P, st, true, changed, helperDesign('you'));
+  if (isIdea(t)) return helperScreen(t, 'you', P, st, true, changed, passedOn, helperDesign('you'));
+  return screen(t, P, st, true, changed, arranged ?? keptDesign('you'), noted);
+}
+function surfaceScreen(P) {
+  const root = h('div', {});
+  const look = lookOf(P);
+  let parts = [];
+  let whole = null;
+  let settling = null;
+  const typing = () => document.activeElement?.matches?.('input, textarea, select') === true;
+  const order = () => [...root.querySelectorAll('.cell[data-id]')].filter((node) => !['talk', 'said'].includes(node.dataset.id)).map((node) => node.dataset.id + (node.classList.contains('now') ? '!' : '')).join();
+  // Once what was done has been seen, the surface takes its new order, unless something is unfolded or being typed.
+  const settle = () => { if (thing === 'home' && !typing() && mattersNow(P).map((r) => r.id + (r.now ? '!' : '')).join() !== order()) glide(table); };
+  const used = (id) => () => { useNow(id); words(); about(); clearTimeout(settling); settling = setTimeout(settle, 1500); };
+  const day = () => new Intl.DateTimeFormat('en', { weekday: 'long' }).format(new Date());
+  const taken = (now) => {
+    if (!me.links.calendar) return null;
+    const busy = weekFor(P)[now.day];
+    const during = busy.find(([start, end]) => start <= now.at && now.at < end);
+    const next = busy.find(([start]) => start > now.at);
+    return during ? `Taken until ${clock(during[1])}.` : next ? `Free until ${clock(next[0])}.` : 'Nothing more in your calendar today.';
+  };
+  const sentence = (ranked, now) => {
+    const waiting = ranked.filter((r) => r.waits).length;
+    const next = ranked.find((r) => r.near != null);
+    const said = [taken(now), next ? `${calledOf(THINGS[next.id], P, stateFor(next.id, 'you'))} ${next.now ? 'now' : next.meta.split(' · ')[0]}.` : null, waiting ? `${waiting === 1 ? 'One thing waits' : `${waiting} things wait`} on you.` : null].filter(Boolean);
+    return said.join(' ') || 'Nothing is waiting. Say something, or put something in.';
+  };
+  // The words that move with the clock are written in place, so a number being typed is never drawn again under the typing.
+  function words() {
+    const ranked = mattersNow(P);
+    const now = momentOf(P);
+    root.querySelector('.sf-now h1').textContent = `${day()} ${clock(now.at)}`;
+    root.querySelector('.sf-now p').textContent = sentence(ranked, now);
+    for (const r of ranked) {
+      const cell = root.querySelector(`.cell[data-id="${r.id}"]`);
+      if (!cell) continue;
+      cell.querySelector('.cell-head span').textContent = r.meta;
+      cell.classList.toggle('timed', r.near != null);
+      cell.style.setProperty('--near', String(r.near ?? 0));
+    }
+    return ranked;
+  }
+  function draw() {
+    const ranked = mattersNow(P);
+    root.className = 's l-surface on-phone';
+    wear(root, look);
+    root.style.setProperty('--scale', P.size === 'large' ? '1.2' : '1');
+    const cell = ({ id, now }) => {
+      const t = THINGS[id];
+      const st = stateFor(id, 'you');
+      const open = thing === id;
+      const made = open || now ? wholeOf(t, P, st, used(id)) : glimpseOf(t, P, st, used(id));
+      if (made) parts.push(made);
+      if (open) whole = made;
+      return h('section', { class: `cell${open ? ' open' : ''}${now ? ' now' : ''}`, 'data-id': id },
+        h('button', { type: 'button', class: 'cell-head', 'aria-expanded': String(open), on: { click: () => { thing = open ? 'home' : id; arranged = null; useNow(id); table(); } } },
+          h('strong', { text: calledOf(t, P, st) }), h('span', {})),
+        made ? h('div', { class: 'cell-body' }, made.el) : null);
+    };
+    const talk = me.talked ? null : h('section', { class: `cell${talking ? ' open' : ''}`, 'data-id': 'talk' },
+      h('button', { type: 'button', class: 'cell-head', 'aria-expanded': String(Boolean(talking)), on: { click: () => { talking = !talking; table(); } } }, h('strong', { text: 'Make it yours' }), h('span', { text: 'three questions' })),
+      talking ? h('div', { class: 'cell-body' }, (() => { const made = talkScreen(P, table); parts.push(made); return made.el; })()) : null);
+    const answer = found ? h('section', { class: 'cell open', 'data-id': 'said' },
+      h('div', { class: 'cell-head' }, h('strong', { text: found.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }), h('span', { text: found.hits.length ? 'from what you hold' : '' })),
+      h('div', { class: 'cell-body' }, found.hits.length ? found.hits.map((hit) => h('button', { type: 'button', class: 'sf-hit', on: { click: () => { thing = hit.id; found = null; table(); } } }, h('span', { text: hit.text }), h('small', { text: hit.from })))
+        : h('p', { class: 'dim', text: 'Nothing you hold says anything about that.' }),
+      h('button', { type: 'button', class: 'p-voice', text: 'Done', on: { click: () => { found = null; glide(table); } } }))) : null;
+    const cells = ranked.map(cell);
+    put(root, h('header', { class: 'sf-now' }, h('h1', {}), h('p', {})), answer, cells.slice(0, 2), talk, cells.slice(2));
+    words();
+    // The surface stays where it was read; a thing just unfolded is brought to the top of it.
+    requestAnimationFrame(() => { root.scrollTop = found ? 0 : surfaceTop; if (!found) root.querySelector('.cell.open:not([data-id="talk"])')?.scrollIntoView({ block: 'start', behavior: surfaced ? 'smooth' : 'auto' }); surfaced = true; root.addEventListener('scroll', () => { surfaceTop = root.scrollTop; }); });
+  }
+  draw();
+  // A number typed into a thing is a use of it, and the few words beside its name follow at once.
+  root.addEventListener('input', (event) => { const id = event.target.closest('.cell')?.dataset.id; if (id && THINGS[id]) { useNow(id); words(); } });
+  // The surface keeps time: the words follow the clock, and when nothing is unfolded or being typed the order does too.
+  const tick = setInterval(() => { words(); settle(); }, 15000);
+  const surface = { layout: 'surface', device: 'phone', by: 'the device', blocks: [], why: ['Everything you hold is on one surface, each thing where it can be used. What matters now comes first, and the order moves with the clock and with what you do.'] };
+  return { el: root, stop: () => { clearInterval(tick); clearTimeout(settling); for (const part of parts) part.stop(); }, spec: () => whole?.spec() ?? surface };
+}
+
 // ---- the table: things, people, and what each device knows ---------------------------------------------
 const BASE = { language: 'en', amount: 'all', take: 'read', asksFirst: false, words: 'written', size: 'normal', device: 'phone', look: 'daylight', calendar: true, buzz: true };
 const PRESETS = {
@@ -3400,7 +3668,7 @@ const KIT = {
   list: 'A list to tick off', steps: 'Steps, one at a time', counter: 'A counter', times: 'Set times of the day', days: 'Every few days', phone: 'The rest is on the phone',
 };
 Object.assign(KIT, { asked: 'A question you can answer from here', helper: 'A helper, by its next moment', idea: 'An idea waiting to be made yours', read: 'A thing to read, by its main number', more: 'The rest', asks: 'A question about you' });
-const LAYOUT_NAMES = { calc: 'A tool, worked out on this device', design: 'A screen designed whole', home: 'A home', talk: 'A first talk', board: 'One screen that scrolls', deck: 'A deck of screens', bench: 'The data file as a bench', glance: 'A glance face', setup: 'The idea, asking', tool: 'A working helper' };
+const LAYOUT_NAMES = { surface: 'One surface, in order of what matters now', calc: 'A tool, worked out on this device', design: 'A screen designed whole', home: 'A home', talk: 'A first talk', board: 'One screen that scrolls', deck: 'A deck of screens', bench: 'The data file as a bench', glance: 'A glance face', setup: 'The idea, asking', tool: 'A working helper' };
 const THINGS = {};
 const isIdea = (t) => Boolean(t.does);
 const people = JSON.parse(JSON.stringify(PRESETS));
@@ -3436,12 +3704,13 @@ function mount(id, live, scale) {
   const t = THINGS[thing];
   const P = isIdea(t) && people[id].device === 'desk' ? { ...people[id], device: 'phone' } : people[id];
   const st = t.home ? null : live ? stateOf(id) : isIdea(t) ? helperStart(thing, id) : isCalc(t) ? calcStart(t) : freshState();
-  const made = t.home ? (id === 'you' && live && !me.talked ? talkScreen(P, table) : homeScreen(id, P, live, live ? () => about() : null, (tid) => { thing = tid; arranged = null; table(); }))
+  const made = !comparing && live ? surfaceScreen(people.you)
+    : t.home ? (id === 'you' && live && !me.talked ? talkScreen(P, table) : homeScreen(id, P, live, live ? () => about() : null, (tid) => { thing = tid; arranged = null; table(); }))
     // A tool or a helper its person asked to read is shown as the statements it is made of.
     : (isCalc(t) || isIdea(t)) && live && st.form === 'page' ? screen(asThing(t), P, (st.reading ??= freshState()), live, () => about(), null, null)
     : isCalc(t) ? calcScreen(t, id, P, st, live, live ? () => about() : null, live ? helperDesign(id) : null)
     : isIdea(t) ? helperScreen(t, id, P, st, live, live ? () => about() : null, passedOn, live ? helperDesign(id) : null) : screen(t, P, st, live, live ? () => about() : null, live ? arranged ?? keptDesign(id) : null, live && id === 'you' ? noted : null);
-  const dev = h('div', { class: `dev dev-${P.device}${live ? ' enter' : ''}` }, h('div', { class: 'scr' }, made.el));
+  const dev = h('div', { class: `dev dev-${P.device}${live && (comparing || !surfaced) ? ' enter' : ''}` }, h('div', { class: 'scr' }, made.el));
   if (!live) { dev.inert = true; dev.setAttribute('aria-hidden', 'true'); }
   const fit = h('div', { class: 'fit' }, dev);
   const outer = DEVICES[P.device];
@@ -3497,7 +3766,7 @@ function about() {
         h('div', { class: 'opts' }, options.map(([value, text]) => h('button', { type: 'button', class: 'opt', 'aria-pressed': String(P[key] === value), text, on: { click: () => learn({ [key]: value }) } }))))),
       h('div', { class: 'know-row' }, h('span', { text: 'Look' }), h('div', { class: 'opts' }, Object.keys(LOOKS).map(look),
         h('button', { type: 'button', class: 'opt', 'aria-pressed': String(typeof P.look !== 'string'), text: 'One of their own', on: { click: () => learn({ look: { seed: String(Math.random()) } }) } }))),
-      person === 'you' ? [h('p', { class: 'who', text: [told('said', 'You said'), told('learned', 'It learned from what you do'), told('ai', 'It was said for you')].filter(Boolean).join(' ') || 'Nothing yet. It is as the author wrote it until you say, or it learns.' }),
+      person === 'you' ? [h('p', { class: 'who', text: [told('said', 'You said'), told('learned', 'It learned from what you do'), told('ai', 'It was said for you'), Object.keys(me.hours).length ? 'It keeps the hours at which you use each thing, to put first what you usually use about now.' : null].filter(Boolean).join(' ') || 'Nothing yet. It is as the author wrote it until you say, or it learns.' }),
         h('button', { type: 'button', class: 'textlink', id: 'forget', text: 'Forget everything about me, and all I made or was sent', on: { click: forgetAll } })]
         : same ? null : h('button', { type: 'button', class: 'textlink', text: `Back to ${PRESETS[person].name} as first known`, on: { click: () => { people[person] = JSON.parse(JSON.stringify(PRESETS[person])); arranged = null; table(); } } })),
     person === 'you' ? linksPanel() : null,
@@ -3614,7 +3883,7 @@ function bar() {
     : []);
   // In the app there is one line and nothing else. What else can be said here is offered as words while the line is in use.
   const fitting = t.home ? [] : Object.entries(formsFor(t)).filter(([id, form]) => !form.fits(t, people.you) && id !== (shown?.spec().form ?? FORM_OF_LAYOUT[shown?.spec().layout])).slice(0, 3).map(([id]) => ({ page: formsFor(t) === WORKING_FORMS ? 'what it is' : 'a page', story: 'a story', todo: 'a to-do list', numbers: 'other numbers', glance: 'a glance', data: 'the data', use: 'use it' })[id]);
-  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home || !me.talked ? [] : ['send', ...fitting]), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => { document.getElementById('say-text').blur(); saidIt(words); } } })));
+  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home ? [] : ['send', ...fitting]), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => { document.getElementById('say-text').blur(); saidIt(words); } } })));
 }
 function table() {
   const shell = document.querySelector('.shell');
@@ -3781,7 +4050,7 @@ people.you.look = { seed: String(Math.random()) };
 if (kept) {
   if (kept.you && typeof kept.you === 'object') Object.assign(people.you, personFrom(kept.you) ?? {}, typeof kept.you.look === 'object' && kept.you.look ? { look: { seed: String(kept.you.look.seed ?? kept.you.look.hue ?? 'you'), ...(Number.isFinite(kept.you.look.hue) ? { hue: kept.you.look.hue, dark: kept.you.look.dark === true } : {}) } } : {}, typeof kept.you.figures === 'string' ? { figures: kept.you.figures } : {}, { calendar: kept.you.calendar !== false, buzz: kept.you.buzz !== false });
   Object.assign(me, { talked: kept.talked === true, from: kept.from && typeof kept.from === 'object' ? kept.from : {}, learned: { forms: kept.learned?.forms ?? {}, rest: kept.learned?.rest ?? [] },
-    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links),
+    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links), hours: Object.fromEntries(Object.entries(kept.hours && typeof kept.hours === 'object' ? kept.hours : {}).filter(([, hours]) => hours && typeof hours === 'object' && Object.entries(hours).every(([hour, n]) => /^([01]?\d|2[0-3])$/.test(hour) && Number.isFinite(n))).slice(0, 200)), used: Object.fromEntries(Object.entries(kept.used && typeof kept.used === 'object' ? kept.used : {}).filter(([, at]) => Number.isFinite(at)).slice(0, 200)),
     own: Object.fromEntries(Object.entries(kept.own && typeof kept.own === 'object' ? kept.own : {}).slice(0, 20).map(([name, lines]) => [ownKey(name), ownFrom(lines)]).filter(([name, lines]) => name && lines.length)) });
   for (const token of Array.isArray(kept.tokens) ? kept.tokens.slice(0, 40) : []) if (addPayload(fromToken(token), false)) me.tokens.push(token);
   for (const raw of Array.isArray(kept.recipes) ? kept.recipes.slice(0, 20) : []) { const recipe = recipeFrom(raw); if (recipe) RECIPES[recipe.name] = { ...recipe, own: true }; }
