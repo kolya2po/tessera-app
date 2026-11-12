@@ -509,6 +509,18 @@ details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .s .d-add { padding: 0.45em 0.9em; border: 1px solid var(--line); border-radius: 999px; font-size: 0.88em; }
 .s .sf-hit { display: grid; gap: 0.2em; width: 100%; text-align: left; padding: 0.7em 0; border-top: 1px solid var(--line); font-size: 1.02em; line-height: 1.4; }
 .sf-hit small { color: var(--dim); font-size: 0.82em; }
+.say button[aria-pressed="true"] { background: var(--accent); color: var(--on); }
+.s.l-desk .d-h { font: 600 0.8em/1.3 var(--text); letter-spacing: 0; color: var(--dim); margin: 2em 0 0.6em; }
+.d-ctx .d-say { font-size: 1.14em; line-height: 1.5; margin-bottom: 0.3em; }
+.d-says { margin-bottom: 1.1em; }
+.d-src summary { display: inline-block; cursor: pointer; list-style: none; font-size: 0.8em; color: var(--dim); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.d-src summary::-webkit-details-marker { display: none; }
+.d-src[open] { margin: 0.5em 0 0.2em; padding-left: 0.9em; border-left: 2px solid var(--line); }
+.d-src[open] .d-say { font-size: 0.93em; color: var(--dim); margin: 0.5em 0; }
+.d-src small { display: block; font-size: 0.78em; color: var(--dim); }
+.d-mine { margin: 0 0 1.1em; padding-left: 0.9em; border-left: 2px solid var(--accent); font-size: 1.06em; }
+.d-mine small { display: block; font-size: 0.72em; color: var(--dim); margin-top: 0.2em; }
+.d-made { margin: 1.2em 0 0; font-size: 0.86em; color: var(--dim); }
 .d-empty { display: grid; align-content: center; justify-items: start; min-height: 100%; padding-top: 3em; padding-bottom: 3em; }
 .d-empty h1 { font: var(--dw) 2.2em/1.05 var(--display); letter-spacing: var(--track); margin: 0 0 0.4em; }
 .d-empty p { margin: 0 0 0.3em; max-width: 34em; }
@@ -643,7 +655,7 @@ body:has(.shell.app) { padding: 0; }
     <aside class="about" id="about"></aside>
   </main>
   <div class="say-hints" id="say-hints"></div>
-  <form class="say" id="say" autocomplete="off"><button type="button" id="say-home" aria-label="Home"></button><input type="text" id="say-text" aria-label="Say what you want, or what to keep" placeholder="Say it, or put something in" enterkeyhint="go"><input type="file" id="say-files" multiple hidden><button type="button" id="say-add" aria-label="Put a file or a picture in"></button></form>
+  <form class="say" id="say" autocomplete="off"><input type="text" id="say-text" aria-label="Say what you want, or what to keep" placeholder="Say it, or put something in" enterkeyhint="go"><input type="file" id="say-files" multiple hidden><button type="button" id="say-mic" aria-label="Say it aloud" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></button></form>
   <nav class="appbar" id="bar" aria-label="Your app"></nav>
   <p class="foot">A working sketch, not a product. What it learns about you, what you make or are sent, and a screen designed for you are kept in this browser and nowhere else; “Forget everything” erases them. Nothing leaves the page unless you copy something to send, ask Claude, keep a copy in your Claude Docs, or save a file for your own AI, and it says what goes first. The three things to read are real containers, read here as they are; the two helpers are ideas with no code. Every screen is made by a composer from what was sent and what the device knows. The sample people’s calendars and clock are stand-ins. Yours are real: this device’s clock, a calendar file you give it (only the hours taken are kept), and whatever way of telling you this browser allows. The Ukrainian wording, the short headlines and the captions under numbers of the first two things stand for what a model writes once and the thing then carries; each is marked, with the author’s own words one tap away.</p>
 </div>
@@ -1492,6 +1504,26 @@ function documentsOf(doc, files) {
   return out;
 }
 
+// The context kept with a container is a view of it: headings and words of whoever wrote the context,
+// sentences that say in other words what named statements say (every number taken from them by
+// reference), and statements shown as they are. It is read here as blocks; a reference to something the
+// container does not hold is left out.
+function contextOf(html, unitIds, values) {
+  if (typeof html !== 'string') return null;
+  const blocks = [];
+  for (const element of new DOMParser().parseFromString(html, 'text/html').body.children) {
+    const ref = element.getAttribute('data-ref');
+    if (ref) { if (unitIds.has(ref)) blocks.push({ show: ref }); continue; }
+    const text = [...element.childNodes].map((node) => (node.nodeType === 1 && node.hasAttribute('data-ref') ? (Object.hasOwn(values, node.getAttribute('data-ref')) ? { v: node.getAttribute('data-ref') } : '') : node.textContent));
+    const says = (element.getAttribute('data-says') ?? '').split(/\s+/).filter((id) => unitIds.has(id));
+    if (/^h[1-6]$/.test(element.localName)) blocks.push({ h: squash(element.textContent).trim() });
+    else if (says.length) blocks.push({ says, text });
+    // A sentence that names only statements the container does not hold stands on nothing, and is left out.
+    else if (!element.hasAttribute('data-says')) blocks.push({ mine: text });
+  }
+  return blocks.length ? blocks : null;
+}
+
 function askOf(element) {
   const control = element.querySelector('select, textarea, input');
   if (control?.localName === 'select') return { type: 'choice', options: [...control.querySelectorAll('option')].map((o) => o.getAttribute('value')) };
@@ -1570,6 +1602,7 @@ function thingFrom(html, files) {
     note: 'Read from a container: statements, values and files, with no layout of its own.',
     units: unitElements.map((e) => unitOf(e, unitIds, files)),
     ...(documentsOf(doc, files).length && { docs: documentsOf(doc, files) }),
+    ...(contextOf(files['views/context.html'], unitIds, values) && { context: contextOf(files['views/context.html'], unitIds, values) }),
     values,
     files: usedFiles,
     said: {},
@@ -2964,6 +2997,7 @@ const QUIET_REQUEST = (words, t, P) => [
   'TOOL:', CALC_REQUEST.split('\n').slice(1, -1).join('\n'), 'HELPER:', HELPER_REQUEST.split('\n').slice(1, -1).join('\n'),
   ...(t.home || isCalc(t) || isIdea(t) ? [] : ['DESIGN:', designRequest(t, P)])].join('\n');
 
+const WANTS = /^(show|only|just|give me|i want|i need|let me see|what|which|how|why|where|when|who|compare|sum up|summari[sz]e|explain|tell me|list)\b/i;
 const ASKS_FOR = /^(please )?(make|build|create|give me|i want|i need|i'd like|i would like|something (that|to)|a (tool|helper|tracker|calculator|plan)|help me|remind me|track|design|turn (this|it)|can you|could you|show (me|it|this))\b/i;
 function show(made) {
   thing = made.id;
@@ -3033,11 +3067,10 @@ async function saidIt(text, files = []) {
   if (meOpen) { meOpen = false; }
   if (/tessera1:/.test(words)) return receive(fromToken(words) ?? {}) || (note.textContent = 'That held nothing this can read.');
   if (!t.home && /^(send|share|pass)\b/i.test(words)) return copyToSend(t);
-  // In the app a container is shown in a layout; said in words, a layout is written once by a model and kept.
-  if (!comparing && !t.home && isContainer(t) && sample && LAYOUT_WORDS.test(words)) return layoutSaid(words, t);
   if (!t.home) {
     // A form is asked for in a few words or with a word that asks; a sentence, however short, is a sentence.
-    const wished = /^(as|show|make|turn|let me|give me|i want|just)\b/i.test(words) || (words.split(/\s+/).length <= 3 && !/[.!]$/.test(words)) ? formWished(t, P, words) : null;
+    // In the app, words that ask to see something make a screen of the container; a form is asked for by its name.
+    const wished = (comparing || !WANTS.test(words)) && (/^(as|show|make|turn|let me|give me|i want|just)\b/i.test(words) || (words.split(/\s+/).length <= 3 && !/[.!]$/.test(words))) ? formWished(t, P, words) : null;
     if (wished?.form) { stateOf('you').form = wished.form; arranged = null; return table(); }
     if (wished?.why) { note.textContent = wished.why; return undefined; }
   }
@@ -3046,7 +3079,10 @@ async function saidIt(text, files = []) {
   if (!comparing && !tool && !helper) {
     // A question is answered from everything held; a few words that name a thing are done to it.
     // One short sentence that asks is a question to the device. Several sentences ending in one are something to keep.
-    if (QUESTION.test(words) && !ASKS_FOR.test(words) && words.split(/\s+/).length <= 12 && words.split(/(?<=[.!?])\s/).length === 1) { found = askedOf(words, P); deskSheet = null; return table(); }
+    const asks = (QUESTION.test(words) || WANTS.test(words)) && words.split(/\s+/).length <= 30 && words.split(/(?<=[.!?])\s/).length === 1;
+    // Asked of the container in front, it is a screen of that container; asked of nothing in particular, it is looked for in everything held.
+    if (asks && !t.home && isContainer(t) && deskSheet !== 'things' && await screenSaid(words, t)) return undefined;
+    if (asks && QUESTION.test(words) && !ASKS_FOR.test(words)) { found = askedOf(words, P); deskSheet = null; return table(); }
     const done = doneToHeld(words);
     if (done) { found = null; show(done.t); note.textContent = done.said; return done.t; }
   }
@@ -3265,7 +3301,7 @@ async function design(sampled, from) {
 // ---- yours: the same engine as the thing itself. It learns one person, keeps their things, and has no
 // screen of its own: a home is composed for whoever holds the device, like everything else. ------------
 const ME_KEY = 'tessera-sketch:me';
-const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {}, used: {}, layouts: [], layoutOf: {}, layoutDefault: null, samples: false, last: null };
+const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {}, used: {}, screens: {}, samples: false, last: null };
 // What you did with each thing is kept with the rest: your answers, a helper as you made it, a tool's
 // numbers and its record. A running timer and an open sheet are of the moment and are not.
 const keptStates = () => Object.fromEntries(Object.entries(states).filter(([key]) => key.endsWith('/you')).map(([key, st]) => [key, { ...st, left: undefined, sheet: undefined }]));
@@ -3492,12 +3528,13 @@ function talkScreen(P, done) {
   return { el: root, stop: () => {}, spec: () => spec };
 }
 
-// ---- the desk: one container at a time, in a layout that is kept ---------------------------------------
-// The app shows one container, whole, and nothing else. A container is a place: it holds statements, and
-// the documents and files they came with. How it is shown is a layout: a short list of blocks, each
-// naming what to show by what it is (the essential statements, every table, what stands under a
-// heading), never by which statement it is. So a layout made once for one container shows any other
-// with no model, is kept on the device, and is changed by hand like anything else its person holds.
+// ---- the desk: one container at a time, opened on its context -------------------------------------------
+// The app shows one container and nothing else. A container is a place: it holds documents and what
+// was said, and the context made of them: what it is, what was found, what it does not show. It opens
+// on that context, with the documents behind it. What its person says, typed or aloud, makes another
+// screen of it: sentences that name the statements they stand on and take every number from them,
+// and statements shown as they are. A screen is read by the same rules whoever wrote it, and is kept,
+// so it is there the next time with no model.
 const SAMPLES = new Set(['week', 'trip', 'report', 'practise', 'stretch', 'split', 'runs']);
 const samplesOn = () => me.samples || new URLSearchParams(location.search).has('samples');
 const held = () => Object.values(THINGS).filter((t) => !t.home && (!SAMPLES.has(t.id) || samplesOn()));
@@ -3505,71 +3542,74 @@ const isContainer = (t) => !isIdea(t) && !isCalc(t);
 const pendingAsk = (t, st) => t.units.find((u) => u.kind === 'ask' && u.must && u.ask.type === 'choice' && st.answers[u.id] == null);
 const calledOf = (t, P, st) => (isIdea(t) ? (st.made ? nameOf(t, P, st) : t.title ?? t.label.replace(/^A helper: /, '')) : t.title ?? t.label).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
 let found = null;
-let deskSheet = null;   // 'things' | 'layouts' | 'edit' | null
+let deskSheet = null;   // 'things' | null
 
-// ---- layouts ---------------------------------------------------------------------------------------------
-const READ = { id: 'read', name: 'Read', by: 'built in', blocks: [{ part: 'doc' }, { part: 'rest', as: 'outline' }] };
-const SHAPES = ['text', 'table', 'figure', 'list'];
-const UNIT_KINDS = ['claim', 'instruction', 'ask', 'commitment', 'declaration', 'expression'];
-const WAYS = ['natural', 'large', 'gallery'];
-// A layout from anywhere (kept on the device, written by a model, sent by someone) is read field by field.
-function layoutFrom(raw) {
-  if (!raw || typeof raw !== 'object' || typeof raw.name !== 'string' || !Array.isArray(raw.blocks) || !raw.blocks.length || raw.blocks.length > 16) return null;
-  const blocks = raw.blocks.map((b) => {
+// ---- screens: the context kept with a container, and what its person asked to see ----------------------
+// A screen from anywhere (written by a model, kept on the device) is read block by block against the
+// container. A sentence in other words must name statements the container holds, may take a number only
+// as one of their values, and may not type a digit of its own; a block that breaks this is left out.
+function screenFrom(raw, t) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.blocks)) return null;
+  let dropped = 0;
+  const blocks = raw.blocks.slice(0, 40).map((b) => {
     if (!b || typeof b !== 'object') return null;
-    if (b.part === 'doc') return { part: 'doc' };
-    if (b.part === 'rest') return { part: 'rest', as: b.as === 'count' ? 'count' : 'outline' };
-    const s = b.show;
-    if (!s || typeof s !== 'object') return null;
-    const show = { ...(s.must === true && { must: true }), ...(UNIT_KINDS.includes(s.kind) && { kind: s.kind }), ...(SHAPES.includes(s.shape) && { shape: s.shape }),
-      ...(typeof s.under === 'string' && s.under.trim() && { under: s.under.trim().slice(0, 60) }), ...(Number.isInteger(s.first) && s.first > 0 && s.first <= 50 && { first: s.first }) };
-    return { show, as: WAYS.includes(b.as) ? b.as : 'natural', ...(typeof b.title === 'string' && b.title.trim() && { title: b.title.trim().slice(0, 60) }) };
-  });
-  if (blocks.includes(null)) return null;
-  return { id: typeof raw.id === 'string' && /^[a-z0-9-]{1,24}$/.test(raw.id) && raw.id !== 'read' ? raw.id : `l${Date.now().toString(36)}`, name: raw.name.trim().slice(0, 40) || 'A layout', by: typeof raw.by === 'string' ? raw.by.slice(0, 60) : 'you', blocks };
+    if (typeof b.h === 'string' && b.h.trim()) return { h: b.h.trim().slice(0, 80) };
+    if (typeof b.show === 'string') return t.units.some((u) => u.id === b.show) ? { show: b.show } : null;
+    const segs = (text) => (Array.isArray(text) ? text : String(text).split(/\{([a-z0-9.]+)\}/).map((part, i) => (i % 2 ? { v: part } : part))).filter((part) => part !== '');
+    if (typeof b.mine === 'string' || Array.isArray(b.mine)) { const mine = segs(b.mine).filter((part) => typeof part === 'string' || Object.hasOwn(t.values, part.v)); return mine.length ? { mine } : null; }
+    const says = (Array.isArray(b.says) ? b.says : String(b.says ?? '').split(/\s+/)).filter((id) => t.units.some((u) => u.id === id));
+    if (!says.length || (typeof b.text !== 'string' && !Array.isArray(b.text))) return null;
+    const text = segs(b.text);
+    const sound = text.every((part) => (typeof part === 'string' ? !/\d/.test(part) : Object.hasOwn(t.values, part.v) && says.includes(t.values[part.v].unit)));
+    return sound && text.some((part) => typeof part === 'string' && part.trim()) ? { says, text } : null;
+  }).filter((b) => b ?? (dropped += 1, false));
+  return blocks.length ? { words: typeof raw.words === 'string' ? raw.words.slice(0, 200) : '', blocks, dropped } : null;
 }
-const layoutsHeld = () => [READ, ...me.layouts];
-const layoutOf = (t) => layoutsHeld().find((l) => l.id === (me.layoutOf[t.id] ?? me.layoutDefault)) ?? READ;
-const shapeOfUnit = (u) => u.shape ?? 'text';
-function pick(units, show) {
-  const under = show.under?.toLowerCase();
-  const out = units.filter((u) => (!show.must || u.must) && (!show.kind || u.kind === show.kind) && (!show.shape || shapeOfUnit(u) === show.shape) && (!under || (u.path ?? [u.under ?? '']).some((heading) => heading.toLowerCase().includes(under))));
-  return show.first ? out.slice(0, show.first) : out;
+// What a model is told: what was said, what the device knows of its person, and every statement by id.
+function screenRequest(words, t, P) {
+  const line = (u) => `${u.id} | ${u.shape ?? u.kind}${u.must ? ', essential' : ''} | ${u.text.map((part) => (typeof part === 'string' ? part : `{${part.v}=${t.values[part.v].shown}}`)).join('')}`;
+  const all = t.units.map(line);
+  const room = Math.max(160, Math.floor(60000 / all.length));
+  const person = [`reads ${P.language}`, { gist: 'wants only the gist', main: 'wants the main points', all: 'wants everything' }[P.amount], P.words === 'plain' ? 'wants plain words' : null,
+    ...(me.learned.rest ?? []).slice(0, 6).map((note) => String(note).slice(0, 120)), ...(me.screens[t.id] ?? []).slice(0, 4).map((one) => `asked before: ${one.words}`)].filter(Boolean).join('; ');
+  return ['A person looks at one container on their own device and says what they want to see. Make that screen out of the container, as one JSON object and nothing else: {"blocks": [BLOCK, ...]}, with at most 30 blocks.',
+    `What they said: ${words.slice(0, 400)}`, `What their device knows of them: ${person}.`,
+    'BLOCK is one of:', '{"h": a short heading in your words}',
+    '{"says": "ID ID", "text": one or two sentences in plain words saying what those statements say. Every number, date and measure is written as {VALUE_ID}, taken from those statements: never type a digit.}',
+    '{"show": "ID"} for the statement, table, figure or list itself, as its author made it. Use it for tables and figures, and where the exact words matter.',
+    '{"mine": something the container does not say: a comparison, a caution, that it does not hold what was asked. It is shown as yours, not the author\'s.}',
+    'Give only what answers what they said, shaped for this person. The statements, as id | what it is | its text with each value written {id=shown}:', ...all.map((one) => one.slice(0, room))].join('\n');
 }
-// A layout laid over one container, or one document of it: each block with the statements it shows. A
-// statement is shown once, and brings what it must be read with.
-function resolve(layout, t, doc) {
-  const all = doc ? doc.units.filter((id) => id !== doc.declares).map((id) => unitOf(t, id)) : t.units;
-  const shown = new Set();
-  return layout.blocks.map((block) => {
-    if (block.part === 'doc') return { block, units: [] };
-    const units = (block.part === 'rest' ? all : pick(all, block.show)).filter((u) => !shown.has(u.id));
-    for (const u of units) shown.add(u.id);
-    // What the statements of a block must be read with closes the block, so that what belongs together stays together.
-    if (block.part !== 'rest') for (const need of units.flatMap((u) => u.needs ?? [])) if (!shown.has(need) && all.some((one) => one.id === need)) { units.push(unitOf(t, need)); shown.add(need); }
-    return { block, units };
-  });
+// With no model, a few plain words still find what they name: tables, figures, what is essential, a heading.
+function screenFromWords(words, t, doc) {
+  const said = words.toLowerCase();
+  const keys = keysOf(words).filter((key) => key.length > 3);
+  const units = (doc ? doc.units.filter((id) => id !== doc.declares).map((id) => unitOf(t, id)) : t.units).filter((u) => (/\btables?\b/.test(said) && u.shape === 'table') || (/\b(figures?|pictures?|diagrams?|charts?)\b/.test(said) && u.shape === 'figure')
+    || (/\b(essential|matters?|important|key)\b/.test(said) && u.must) || keys.some((key) => (u.path ?? []).slice(doc ? 1 : 0).some((heading) => heading.toLowerCase().includes(key))));
+  return units.length ? screenFrom({ words, blocks: units.map((u) => ({ show: u.id })) }, t) : null;
 }
-const showWords = (s) => [s.first ? (s.first === 1 ? 'The first' : `The first ${s.first}`) : 'Every', s.must ? 'essential' : null,
-  `${s.shape === 'table' ? 'table' : s.shape === 'figure' ? 'figure' : s.shape === 'list' ? 'list' : s.kind === 'ask' ? 'question' : s.kind === 'commitment' ? 'promise' : s.kind === 'instruction' ? 'instruction' : 'statement'}${s.first && s.first > 1 ? 's' : ''}`,
-  s.under ? `under “${s.under}”` : null].filter(Boolean).join(' ');
-const blockWords = (b) => (b.part === 'doc' ? 'The document: its title and its file' : b.part === 'rest' ? (b.as === 'outline' ? 'Everything else, folded under its headings' : 'A count of what is left out')
-  : `${showWords(b.show)}${b.as === 'large' ? ', large' : b.as === 'gallery' ? ', side by side' : ''}`);
-// What a container has that a block could show: offered when a layout is changed by hand.
-function offersFor(t, doc) {
-  const all = doc ? doc.units.map((id) => unitOf(t, id)) : t.units;
-  const has = (show) => pick(all, show).length > 0;
-  const heads = [...new Set(all.map((u) => (u.path ?? [])[doc ? 1 : 0]).filter(Boolean))].slice(0, 14);
-  return [{ must: true }, { shape: 'table' }, { shape: 'figure' }, { shape: 'list' }, { kind: 'ask' }, { kind: 'commitment' }, { kind: 'instruction' }, ...heads.map((under) => ({ under: under.replace(/^[\dA-Z.]+\s+/, '') }))].filter(has);
+function keepScreen(t, made) {
+  (me.screens[t.id] ??= []).unshift(made);
+  me.screens[t.id] = me.screens[t.id].slice(0, 12);
+  stateFor(t.id, 'you').tab = 's0';
+  save();
 }
-const LAYOUT_WORDS = /^(lay ?out|show|put|arrange|start with|lead with|begin with|only|first|i want to see)\b/i;
-const LAYOUT_REQUEST = (words, t, doc) => ['A person looks at one container on their own device and says how they want it laid out. Write the layout, as one JSON object and nothing else.',
-  `What they said: ${words.slice(0, 300)}`,
-  '{"name": a few words, "blocks": [BLOCK, ...]} with at most 12 blocks, drawn in order. A statement is shown once, by the first block that takes it.',
-  'BLOCK is {"part": "doc"} (the document title and its file), {"part": "rest", "as": "outline" | "count"} (everything not shown yet, folded under its headings, or only counted), or',
-  '{"show": SHOW, "as": "natural" | "large" | "gallery", "title": optional few words}. "large" sets statements large; "gallery" sets figures side by side.',
-  'SHOW names statements by what they are, never by id: {"must": true} essential ones; {"shape": "table" | "figure" | "list" | "text"}; {"kind": "ask" | "commitment" | "instruction" | "claim"}; {"under": words of a heading}; {"first": a number}. Fields combine.',
-  `This container has: ${offersFor(t, doc).map((show) => showWords(show).replace(/^Every /, '')).join('; ')}.`, 'You write no statement and no number: the layout only chooses and orders what is there.'].join('\n');
+// What is said about the container in front: a screen of it, written by a model where there is one.
+async function screenSaid(words, t) {
+  const note = document.getElementById('opened');
+  const st = stateFor(t.id, 'you');
+  const plain = () => screenFromWords(words, t, typeof st.tab === 'number' ? t.docs?.[st.tab] : null);
+  if (!sample) { const made = plain(); if (made) { keepScreen(t, made); table(); } return Boolean(made); }
+  note.textContent = 'Working it out…';
+  try {
+    const made = screenFrom({ ...(objectIn((await sample(screenRequest(words, t, people.you), { cache: false })).text ?? '') ?? {}), words }, t) ?? plain();
+    if (!made) { note.textContent = 'What came back could not be used, so nothing changed.'; return true; }
+    keepScreen(t, made);
+    note.textContent = made.dropped ? `Kept. ${made.dropped === 1 ? 'One part was' : `${made.dropped} parts were`} left out: each named something the container does not hold, or typed a number of its own.` : '';
+    table();
+  } catch { note.textContent = 'That could not be worked out just now.'; }
+  return true;
+}
 
 // ---- what is said, answered from what is held or done to it ---------------------------------------------
 function useNow(id) { me.used[id] = Date.now(); saveSoon(); }
@@ -3624,21 +3664,6 @@ function doneToHeld(words) {
   else if (count > 3 || t.id === thing) return null;
   return { t, said: option ? `Answered: ${option}. Change it there if that is not what you meant.` : '' };
 }
-// A layout asked for in words is written by a model, where there is one, read like any other, and kept.
-async function layoutSaid(words, t) {
-  const note = document.getElementById('opened');
-  note.textContent = 'Working it out…';
-  try {
-    const made = layoutFrom({ ...(objectIn((await sample(LAYOUT_REQUEST(words, t, t.docs?.[stateFor(t.id, 'you').doc ?? 0]), { cache: false })).text ?? '') ?? {}), id: null, by: `made from your words: “${words.slice(0, 40)}”` });
-    if (!made) { note.textContent = 'What came back was not a layout this can use, so nothing changed.'; return; }
-    me.layouts.push(made);
-    me.layoutOf[t.id] = made.id;
-    save();
-    note.textContent = `Kept as the layout “${made.name}”. It works on any container from now on, with no model.`;
-    table();
-  } catch { note.textContent = 'That could not be worked out just now.'; }
-}
-
 // ---- drawing ---------------------------------------------------------------------------------------------
 const bytes = (n) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1000))} kB`);
 function drawUnit(t, u, c, large) {
@@ -3652,6 +3677,17 @@ function drawUnit(t, u, c, large) {
   const segs = u.lead && typeof u.text[0] === 'string' && u.text[0].startsWith(u.lead) ? [h('strong', { text: u.lead }), ...words([u.text[0].slice(u.lead.length), ...u.text.slice(1)])] : words(u.text);
   return h('p', { class: `d-say${large ? ' large' : ''}` }, segs);
 }
+function drawBlocks(t, blocks, c) {
+  const where = (id) => t.docs?.find((doc) => doc.units.includes(id))?.file.name ?? null;
+  return blocks.map((b) => {
+    if (b.h) return h('h2', { class: 'd-h', text: b.h });
+    if (b.show) return drawUnit(t, unitOf(t, b.show), c, false);
+    if (b.mine) return h('p', { class: 'd-mine' }, nodes(t, b.mine, t.lang), h('small', { text: 'Added by whoever made this screen, not said in the documents.' }));
+    return h('div', { class: 'd-says' }, h('p', { class: 'd-say' }, nodes(t, b.text, t.lang)),
+      h('details', { class: 'd-src' }, h('summary', { text: b.says.length === 1 ? 'In the author’s words' : `In the author’s words, ${b.says.length} statements` }),
+        b.says.map((id) => [drawUnit(t, unitOf(t, id), c, false), where(id) ? h('small', { text: where(id) }) : null])));
+  });
+}
 function deskScreen(P) {
   const root = h('div', {});
   const look = lookOf(P);
@@ -3660,104 +3696,89 @@ function deskScreen(P) {
   const t = things.find((one) => one.id === thing) ?? things.find((one) => one.id === me.last) ?? things[0] ?? null;
   if (t) { thing = t.id; me.last = t.id; } else thing = 'home';
   const st = t ? stateFor(t.id, 'you') : null;
-  const doc = t?.docs?.[Math.min(st.doc ?? 0, t.docs.length - 1)] ?? null;
-  const layout = t && isContainer(t) ? layoutOf(t) : null;
-  // A container can also be worked on in one of the forms it fits: to tick off, with other numbers, one statement at a time.
-  const form = layout && st.form && st.form !== 'page' && wantedForm(t, P, st) ? st.form : null;
   const again = () => table();
-  const sheet = (name) => () => { deskSheet = deskSheet === name ? null : name; again(); };
+  const kept = t ? me.screens[t.id] ?? [] : [];
+  // What is on screen: the context, a screen its person asked for, or one of its documents.
+  const tab = !t || !isContainer(t) ? null : typeof st.tab === 'string' && kept[Number(st.tab.slice(1))] ? st.tab : typeof st.tab === 'number' && t.docs?.[st.tab] ? st.tab : t.context ? 'context' : t.docs ? 0 : 'all';
+  const doc = typeof tab === 'number' ? t.docs[tab] : null;
+  // A container can also be worked on in one of the forms it fits: to tick off, with other numbers, one statement at a time.
+  const form = t && isContainer(t) && st.form && st.form !== 'page' && wantedForm(t, P, st) ? st.form : null;
   const c = t && isContainer(t) ? { thing: t, P, state: st, lang: t.lang, look, live: true, note: noted, t: WORDS[t.lang] ?? WORDS.en, redraw: () => { saveSoon(); again(); } } : null;
+  const files = () => document.getElementById('say-files').click();
 
   const empty = () => h('div', { class: 'd-empty' }, h('h1', { text: 'Nothing here yet' }),
     h('p', { text: 'A container is a place for what belongs together: what you say, documents, tables, pictures. Put something in and it is made.' }),
-    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'Choose files', on: { click: () => document.getElementById('say-files').click() } }),
-    h('p', { class: 'dim', text: 'Or type in the line below. A container made elsewhere opens by its index.html, with its files chosen beside it.' }),
+    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'Choose files', on: { click: files } }),
+    h('p', { class: 'dim', text: 'Or say it in the line below. A container made elsewhere opens by its index.html, with its files chosen beside it.' }),
     h('button', { type: 'button', class: 'd-link', id: 'd-samples', text: 'Look at a few samples first', on: { click: () => { me.samples = true; save(); again(); } } }));
 
   const thingsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Your containers' }),
     things.map((one) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(one.id === thing), on: { click: () => { thing = one.id; deskSheet = null; found = null; useNow(one.id); again(); } } },
       h('strong', { text: calledOf(one, P, stateFor(one.id, 'you')) }), h('span', { text: one.docs ? `${one.docs.length} documents` : isCalc(one) ? 'a tool' : isIdea(one) ? 'a helper' : `${one.units.length} statements` }))),
-    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'New container from files', on: { click: () => { thing = 'home'; deskSheet = null; newNext = true; document.getElementById('say-files').click(); } } }),
-    h('p', { class: 'dim', text: 'While this list is open, what you say or put in below starts a new container. Otherwise it goes into the one that is open.' }));
-
-  const layoutsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Layouts' }),
-    h('p', { class: 'dim', text: 'A layout says what to show by what it is, so each one works on every container. They are kept on this device.' }),
-    layoutsHeld().map((one) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(!form && one.id === layout.id), on: { click: () => { me.layoutOf[t.id] = one.id; st.form = undefined; deskSheet = null; save(); again(); } } },
-      h('strong', { text: one.name }), h('span', { text: one.by }))),
-    Object.entries(FORMS).filter(([id, one]) => id !== 'page' && !one.fits(t, P)).map(([id, one]) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(form === id), on: { click: () => { st.form = id; deskSheet = null; save(); again(); } } },
-      h('strong', { text: one.name }), h('span', { text: 'to work on it' }))),
-    h('div', { class: 'd-acts' }, form ? null : h('button', { type: 'button', class: 'd-link', id: 'd-edit', text: 'Change this layout', on: { click: sheet('edit') } }),
-      layout.id !== me.layoutDefault ? h('button', { type: 'button', class: 'd-link', id: 'd-default', text: 'Use it for every container', on: { click: () => { me.layoutDefault = layout.id; me.layoutOf = {}; save(); again(); } } }) : null),
-    sample ? h('p', { class: 'dim', text: 'Or say how you want it in the line below, starting with “show”: it is written once and kept.' }) : null);
-
-  // Changing a layout by hand: its blocks as plain rows. The one built in is changed as a copy.
-  function editSheet() {
-    const mine = () => {
-      if (layout.id !== 'read') return layout;
-      const copy = layoutFrom({ name: 'Read, mine', by: 'you', blocks: layout.blocks });
-      me.layouts.push(copy);
-      me.layoutOf[t.id] = copy.id;
-      return copy;
-    };
-    const change = (fn) => () => { const own = mine(); fn(own); if (!own.blocks.length) own.blocks.push({ part: 'rest', as: 'outline' }); save(); again(); };
-    const way = (b) => (b.part === 'rest' ? ['outline', 'count'] : b.part === 'doc' ? [] : WAYS);
-    return h('div', { class: 'd-sheet' }, h('h2', { text: 'Change this layout' }),
-      h('input', { type: 'text', class: 'd-name', 'aria-label': 'The name of this layout', value: layout.name, on: { change: (event) => change((own) => { own.name = event.target.value.trim().slice(0, 40) || own.name; })() } }),
-      layout.blocks.map((b, i) => h('div', { class: 'd-block' }, h('span', { text: blockWords(b) }),
-        way(b).length ? h('button', { type: 'button', class: 'd-link', text: 'another way', on: { click: change((own) => { const block = own.blocks[i]; const ways = way(block); block.as = ways[(ways.indexOf(block.as) + 1) % ways.length]; }) } }) : null,
-        h('button', { type: 'button', class: 'd-mini', 'aria-label': 'Earlier', disabled: i === 0, text: '↑', on: { click: change((own) => { own.blocks.splice(i - 1, 0, ...own.blocks.splice(i, 1)); }) } }),
-        h('button', { type: 'button', class: 'd-mini', 'aria-label': 'Later', disabled: i === layout.blocks.length - 1, text: '↓', on: { click: change((own) => { own.blocks.splice(i + 1, 0, ...own.blocks.splice(i, 1)); }) } }),
-        h('button', { type: 'button', class: 'd-mini', 'aria-label': 'Take out', text: '×', on: { click: change((own) => { own.blocks.splice(i, 1); }) } }))),
-      h('h3', { text: 'Add' }),
-      h('div', { class: 'd-adds' }, [...(layout.blocks.some((b) => b.part === 'doc') ? [] : [{ part: 'doc' }]), ...offersFor(t, doc).map((show) => ({ show, as: 'natural' })), ...(layout.blocks.some((b) => b.part === 'rest') ? [] : [{ part: 'rest', as: 'outline' }])]
-        .map((b) => h('button', { type: 'button', class: 'd-add', text: blockWords(b), on: { click: change((own) => { const rest = own.blocks.findIndex((one) => one.part === 'rest'); own.blocks.splice(b.part === 'doc' ? 0 : rest < 0 || b.part === 'rest' ? own.blocks.length : rest, 0, b); }) } }))),
-      h('div', { class: 'd-acts' }, h('button', { type: 'button', class: 'd-go', id: 'd-done', text: 'Done', on: { click: sheet('edit') } }),
-        layout.id !== 'read' ? h('button', { type: 'button', class: 'd-link', id: 'd-forget', text: 'Delete this layout', on: { click: () => { me.layouts = me.layouts.filter((one) => one.id !== layout.id); if (me.layoutDefault === layout.id) me.layoutDefault = null; delete me.layoutOf[t.id]; deskSheet = null; save(); again(); } } }) : null));
-  }
+    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'New container from files', on: { click: () => { newNext = true; files(); } } }),
+    h('p', { class: 'dim', text: 'While this list is open, what you say below starts a new container too.' }),
+    h('div', { class: 'd-acts' }, h('button', { type: 'button', class: 'd-link', id: 'd-send', text: 'Send the open one', on: { click: () => { deskSheet = null; again(); copyToSend(t); } } }),
+      h('button', { type: 'button', class: 'd-link', id: 'd-me', text: 'What this device knows about you', on: { click: () => { deskSheet = null; saidIt('me'); } } })));
 
   const answer = () => h('div', { class: 'd-found' }, h('h2', { text: found.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }),
     found.hits.length ? found.hits.map((hit) => h('button', { type: 'button', class: 'sf-hit', on: { click: () => { thing = hit.id; found = null; again(); } } }, h('span', { text: hit.text }), h('small', { text: hit.from })))
       : h('p', { class: 'dim', text: 'Nothing you hold says anything about that.' }),
     h('button', { type: 'button', class: 'd-link', id: 'd-found-done', text: 'Done', on: { click: () => { found = null; again(); } } }));
 
+  // Everything of a document, or of a container with none, folded under the headings its author gave it.
+  function folded(units, depth) {
+    const groups = [];
+    for (const u of units) { const head = (u.path ?? [u.under ?? ''])[depth] ?? ''; if (groups.at(-1)?.head !== head) groups.push({ head, units: [] }); groups.at(-1).units.push(u); }
+    return groups.map((group) => {
+      let sub = null;
+      const kids = group.units.flatMap((u) => { const next = (u.path ?? [])[depth + 1] ?? null; const title = next && next !== sub ? h('h4', { text: next }) : null; sub = next; return [title, drawUnit(t, u, c, false)]; });
+      return group.head && groups.length > 1 ? h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: group.head }), h('small', { text: String(group.units.length) })), h('div', { class: 'd-in' }, kids)) : h('div', { class: 'd-in' }, kids);
+    });
+  }
   function body() {
     if (form) { inner = screen(t, P, st, true, () => saveSoon(), null, noted); return h('div', { class: 'd-tool' }, inner.el); }
     if (!isContainer(t)) { inner = isCalc(t) ? calcScreen(t, 'you', P, st, true, () => saveSoon(), helperDesign('you')) : helperScreen(t, 'you', P, st, true, () => saveSoon(), passedOn, helperDesign('you')); return h('div', { class: 'd-tool' }, inner.el); }
-    const drawn = resolve(layout, t, doc).map(({ block, units }) => {
-      if (block.part === 'doc') return h('header', { class: 'd-doc' }, h('h1', { text: doc?.title ?? t.title ?? t.label }),
-        doc ? h('p', { class: 'dim', text: `${doc.file.name} · ${bytes(doc.file.size)}${doc.file.here ? '' : ' · the file itself is not in this copy'}` }) : null);
-      if (!units.length) return null;
-      if (block.part === 'rest' && block.as === 'count') return h('p', { class: 'd-left dim' }, `${units.length} more ${units.length === 1 ? 'statement is' : 'statements are'} not shown in this layout. `,
-        h('button', { type: 'button', class: 'd-link', id: 'd-all', text: 'Read everything', on: { click: () => { me.layoutOf[t.id] = 'read'; save(); again(); } } }));
-      if (block.part === 'rest') {
-        // Everything else is there, folded under the headings its author gave it.
-        const depth = doc ? 1 : 0;
-        const groups = [];
-        for (const u of units) { const head = (u.path ?? [u.under ?? ''])[depth] ?? ''; if (groups.at(-1)?.head !== head) groups.push({ head, units: [] }); groups.at(-1).units.push(u); }
-        return h('section', { class: 'd-rest' }, groups.map((group) => {
-          let sub = null;
-          const kids = group.units.flatMap((u) => { const next = (u.path ?? [])[depth + 1] ?? null; const title = next && next !== sub ? h('h4', { text: next }) : null; sub = next; return [title, drawUnit(t, u, c, false)]; });
-          return group.head ? h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: group.head }), h('small', { text: String(group.units.length) })), h('div', { class: 'd-in' }, kids)) : h('div', { class: 'd-in' }, kids);
-        }));
-      }
-      return h('section', { class: `d-part as-${block.as}` }, block.title ? h('h3', { text: block.title }) : null, units.map((u) => drawUnit(t, u, c, block.as === 'large')));
-    });
-    return h('div', { class: 'd-body' }, drawn);
+    if (tab === 'context') {
+      const inIt = new Set(t.context.flatMap((b) => (b.show ? [b.show] : b.says ?? [])));
+      const out = t.units.filter((u) => u.must && !inIt.has(u.id)).length;
+      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: t.title ?? t.label })), drawBlocks(t, t.context, c),
+        h('p', { class: 'd-made' }, 'This context was written from the documents and is kept with them. Each sentence opens onto the statements it stands on, and every number in it is taken from them.',
+          out ? ` ${out} essential ${out === 1 ? 'statement of the documents is' : 'statements of the documents are'} not in it.` : ''));
+    }
+    if (typeof tab === 'string' && tab !== 'all') {
+      const made = kept[Number(tab.slice(1))];
+      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: made.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) })), drawBlocks(t, made.blocks, c),
+        h('p', { class: 'd-made' }, 'Made from what you said, and kept. ', h('button', { type: 'button', class: 'd-link', id: 'd-forget', text: 'Forget this screen', on: { click: () => { me.screens[t.id] = kept.filter((one) => one !== made); st.tab = undefined; save(); again(); } } })));
+    }
+    return h('div', { class: 'd-body' }, h('header', { class: 'd-doc' }, h('h1', { text: doc?.title ?? t.title ?? t.label }),
+      doc ? h('p', { class: 'dim', text: `${doc.file.name} · ${bytes(doc.file.size)}${doc.file.here ? '' : ' · the file itself is not in this copy'}` }) : null),
+      h('section', { class: 'd-rest' }, folded(doc ? doc.units.filter((id) => id !== doc.declares).map((id) => unitOf(t, id)) : t.units, doc ? 1 : 0)));
   }
+  const tabs = () => {
+    const all = [...(t.context ? [['context', 'Context']] : []), ...kept.map((one, i) => [`s${i}`, one.words.length > 26 ? `${one.words.slice(0, 25)}…` : one.words]),
+      ...(t.docs ?? []).map((one, i) => [i, one.file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ')]), ...(!t.docs && (t.context || kept.length) ? [['all', 'Everything in it']] : [])];
+    return all.length > 1 ? h('div', { class: 'd-docs', role: 'tablist' }, all.map(([id, name]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(id === tab), text: name, on: { click: () => { st.tab = id; st.form = undefined; saveSoon(); again(); } } }))) : null;
+  };
 
   root.className = 's l-desk on-phone';
   wear(root, look);
   if (!t) put(root, empty());
   else put(root,
-    h('div', { class: 'd-top' }, h('button', { type: 'button', class: 'd-name-of', id: 'd-things', 'aria-expanded': String(deskSheet === 'things'), on: { click: sheet('things') } }, h('span', { text: calledOf(t, P, st) })),
-      layout ? h('button', { type: 'button', class: 'd-layout', id: 'd-layouts', 'aria-expanded': String(deskSheet === 'layouts' || deskSheet === 'edit'), text: form ? FORMS[form].name : layout.name, on: { click: sheet(deskSheet === 'edit' ? 'edit' : 'layouts') } }) : null),
+    h('div', { class: 'd-top' }, h('button', { type: 'button', class: 'd-name-of', id: 'd-things', 'aria-expanded': String(deskSheet === 'things'), on: { click: () => { deskSheet = deskSheet === 'things' ? null : 'things'; again(); } } }, h('span', { text: calledOf(t, P, st) })),
+      t.place && t.payload?.mine ? h('button', { type: 'button', class: 'd-layout', id: 'd-add', text: 'Add files', on: { click: files } }) : null),
     found ? answer() : null,
-    deskSheet === 'things' ? thingsSheet() : deskSheet === 'layouts' && layout ? layoutsSheet() : deskSheet === 'edit' && layout ? editSheet() : null,
-    deskSheet === 'things' || deskSheet === 'layouts' ? null : [
-      t.docs?.length > 1 ? h('div', { class: 'd-docs', role: 'tablist' }, t.docs.map((one, i) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(one === doc), text: one.file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' '), on: { click: () => { st.doc = i; saveSoon(); again(); } } }))) : null,
-      body()]);
-  const spec = { layout: 'desk', device: 'phone', by: 'the device', blocks: [], why: [layout ? `Shown in the layout “${layout.name}” (${layout.by}).` : 'One thing at a time.'] };
+    deskSheet === 'things' ? thingsSheet() : [isContainer(t) && !form ? tabs() : null, body()]);
+  const spec = { layout: 'desk', device: 'phone', by: 'the device', blocks: [], why: ['One container at a time, opened on its context.'] };
   return { el: root, stop: () => inner?.stop?.(), spec: () => inner?.spec?.() ?? spec };
+}
+// What the one line is for, where its person is: said in the line itself, with a few things to say offered under it.
+function lineFor() {
+  const t = THINGS[thing];
+  if (deskSheet === 'things' || !t || t.home) return { ask: 'Say what to keep, and it becomes a container', offers: [] };
+  if (!isContainer(t)) return { ask: 'Say what you want it to do', offers: [] };
+  const has = (shape) => t.units.some((u) => u.shape === shape);
+  return { ask: t.place && t.payload?.mine ? 'Add to this by saying it, or ask about it' : 'Ask about this, or say what you want to see',
+    offers: [has('table') ? 'Show the tables' : null, has('figure') ? 'Show the figures' : null, t.units.some((u) => u.must) ? 'Only what matters' : null, sample ? 'What does it not show?' : null].filter(Boolean) };
 }
 let newNext = false;
 
@@ -4014,7 +4035,9 @@ function bar() {
     : []);
   // In the app there is one line and nothing else. What else can be said here is offered as words while the line is in use.
   const fitting = t.home ? [] : Object.entries(formsFor(t)).filter(([id, form]) => !form.fits(t, people.you) && id !== (shown?.spec().form ?? FORM_OF_LAYOUT[shown?.spec().layout])).slice(0, 3).map(([id]) => ({ page: formsFor(t) === WORKING_FORMS ? 'what it is' : 'a page', story: 'a story', todo: 'a to-do list', numbers: 'other numbers', glance: 'a glance', data: 'the data', use: 'use it' })[id]);
-  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home ? [] : ['send']), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => { document.getElementById('say-text').blur(); saidIt(words); } } })));
+  // In the app the line says what it is for where its person is, and offers a few things to say.
+  if (!comparing) document.getElementById('say-text').placeholder = meOpen ? 'Say close to go back' : lineFor().ask;
+  put(document.getElementById('say-hints'), comparing ? [] : (meOpen ? ['close'] : lineFor().offers).map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => { document.getElementById('say-text').blur(); saidIt(words); } } })));
 }
 function table() {
   const shell = document.querySelector('.shell');
@@ -4177,7 +4200,7 @@ take(thingFrom(SOURCES.trip.html, SOURCES.trip.files), TRIP_MORE);
 take(thingFrom(SOURCES.report.html, SOURCES.report.files), { id: 'report', label: 'A report, with nothing added' });
 Object.assign(THINGS, { practise: IDEAS.practise, stretch: IDEAS.stretch, split: { ...calcFrom(SAMPLE_CALC, 'ben'), id: 'split' }, runs: { ...calcFrom(SAMPLE_RECORD, 'anna'), id: 'runs' } });
 // A copy of the page built for one person carries their own containers, and the layouts made for them.
-const MINE = {"containers": {}, "layouts": []};
+const MINE = {"containers": {}};
 for (const [name, source] of Object.entries(MINE.containers ?? {})) take(thingFrom(source.html, source.files), { id: name, mine: true });
 // What this device kept: its person, what they made or were sent, and the pieces a model drew for them.
 const kept = recall();
@@ -4186,15 +4209,14 @@ people.you.look = { seed: String(Math.random()) };
 if (kept) {
   if (kept.you && typeof kept.you === 'object') Object.assign(people.you, personFrom(kept.you) ?? {}, typeof kept.you.look === 'object' && kept.you.look ? { look: { seed: String(kept.you.look.seed ?? kept.you.look.hue ?? 'you'), ...(Number.isFinite(kept.you.look.hue) ? { hue: kept.you.look.hue, dark: kept.you.look.dark === true } : {}) } } : {}, typeof kept.you.figures === 'string' ? { figures: kept.you.figures } : {}, { calendar: kept.you.calendar !== false, buzz: kept.you.buzz !== false });
   Object.assign(me, { talked: kept.talked === true, from: kept.from && typeof kept.from === 'object' ? kept.from : {}, learned: { forms: kept.learned?.forms ?? {}, rest: kept.learned?.rest ?? [] },
-    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links), layouts: (Array.isArray(kept.layouts) ? kept.layouts : []).slice(0, 40).map(layoutFrom).filter(Boolean), layoutOf: Object.fromEntries(Object.entries(kept.layoutOf && typeof kept.layoutOf === 'object' ? kept.layoutOf : {}).filter(([, id]) => typeof id === 'string').slice(0, 200)), layoutDefault: typeof kept.layoutDefault === 'string' ? kept.layoutDefault : null, samples: kept.samples === true, last: typeof kept.last === 'string' ? kept.last : null, used: Object.fromEntries(Object.entries(kept.used && typeof kept.used === 'object' ? kept.used : {}).filter(([, at]) => Number.isFinite(at)).slice(0, 200)),
+    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links), screens: kept.screens && typeof kept.screens === 'object' ? kept.screens : {}, samples: kept.samples === true, last: typeof kept.last === 'string' ? kept.last : null, used: Object.fromEntries(Object.entries(kept.used && typeof kept.used === 'object' ? kept.used : {}).filter(([, at]) => Number.isFinite(at)).slice(0, 200)),
     own: Object.fromEntries(Object.entries(kept.own && typeof kept.own === 'object' ? kept.own : {}).slice(0, 20).map(([name, lines]) => [ownKey(name), ownFrom(lines)]).filter(([name, lines]) => name && lines.length)) });
   for (const token of Array.isArray(kept.tokens) ? kept.tokens.slice(0, 40) : []) if (addPayload(fromToken(token), false)) me.tokens.push(token);
   for (const raw of Array.isArray(kept.recipes) ? kept.recipes.slice(0, 20) : []) { const recipe = recipeFrom(raw); if (recipe) RECIPES[recipe.name] = { ...recipe, own: true }; }
 }
 if (kept) statesFrom(kept.states);
-// A layout made for this person is theirs from the first time the page opens: kept, changed and deleted like any other.
-if (!kept?.seeded && (MINE.layouts ?? []).length) { me.layouts.push(...MINE.layouts.map(layoutFrom).filter((made) => made && !me.layouts.some((one) => one.id === made.id))); me.layoutDefault ??= me.layouts[0]?.id ?? null; me.seeded = true; }
-else if (kept?.seeded) me.seeded = true;
+// A kept screen is read again like anything else, against the container as it is now.
+for (const [id, list] of Object.entries(me.screens)) me.screens[id] = THINGS[id] && Array.isArray(list) ? list.slice(0, 12).map((one) => screenFrom(one, THINGS[id])).filter(Boolean) : [];
 syncLinks();
 table();
 arrive();
@@ -4213,10 +4235,37 @@ const sayText = document.getElementById('say-text');
 const sayFiles = document.getElementById('say-files');
 // Once something is said the line lets go, so the words it offered stop covering what is under them.
 document.getElementById('say').addEventListener('submit', (event) => { event.preventDefault(); const words = sayText.value; sayText.value = ''; sayText.blur(); saidIt(words); });
-document.getElementById('say-add').addEventListener('click', () => sayFiles.click());
-document.getElementById('say-home').addEventListener('click', () => saidIt('home'));
-put(document.getElementById('say-home'), ic('home'));
-put(document.getElementById('say-add'), ic('plus'));
+// Saying it aloud: the words are heard by the page's host where it offers that, else by the browser, and
+// set in the line as they come. When the speaker stops, what was heard is said, like anything typed.
+const mic = document.getElementById('say-mic');
+const Heard = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+let listener = null;
+let hearing = null;
+let heardSoFar = '';
+const heardAll = () => { hearing = null; mic.setAttribute('aria-pressed', 'false'); if (sayText.value.trim()) document.getElementById('say').requestSubmit(); };
+mic.hidden = !Heard;
+Promise.resolve(window.claude?.use?.('dictation')).then((got) => {
+  if (typeof got?.start !== 'function') return;
+  listener = got;
+  mic.hidden = false;
+  got.onPartial(({ text }) => { if (hearing) sayText.value = heardSoFar + text; });
+  got.onFinal(({ text }) => { if (hearing) { heardSoFar += `${text} `; sayText.value = heardSoFar; } });
+  got.onState(({ state }) => { if (state === 'idle' && hearing) heardAll(); });
+}).catch(() => {});
+mic.addEventListener('click', () => {
+  if (hearing) { hearing.stop?.(); return; }
+  heardSoFar = '';
+  sayText.value = '';
+  mic.setAttribute('aria-pressed', 'true');
+  if (listener) { hearing = listener; listener.start().catch(() => { hearing = null; mic.setAttribute('aria-pressed', 'false'); }); return; }
+  hearing = new Heard();
+  hearing.lang = navigator.language || 'en';
+  hearing.interimResults = true;
+  hearing.onresult = (event) => { sayText.value = [...event.results].map((result) => result[0].transcript).join(''); };
+  hearing.onend = heardAll;
+  hearing.onerror = () => { hearing = null; mic.setAttribute('aria-pressed', 'false'); };
+  hearing.start();
+});
 sayFiles.addEventListener('change', () => { const words = sayText.value; sayText.value = ''; saidIt(words, [...sayFiles.files]); sayFiles.value = ''; });
 window.addEventListener('dragover', (event) => event.preventDefault());
 window.addEventListener('drop', (event) => { event.preventDefault(); if (!comparing && event.dataTransfer.files.length) saidIt('', [...event.dataTransfer.files]); });
