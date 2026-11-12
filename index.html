@@ -449,6 +449,28 @@ details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .s .p-cell { width: 100%; min-width: 0; height: 2.3em; padding: 0 0.5em; border: 0; border-radius: calc(min(var(--r), 8) * 1px); box-shadow: inset 0 0 0 1.5px var(--line); background: none; color: inherit; font: inherit; font-variant-numeric: tabular-nums; }
 .p-row-acts { display: flex; gap: 0.8em; align-items: center; flex-wrap: wrap; }
 /* A device's own taste: beyond colour and type, how things are edged, titled, grounded and pressed. */
+/* In the app, what the device knows and what a thing can be are plain sheets in the person's own look: no panels, and a choice is a word, not a button. */
+.shell.app.me-open .focus, .shell.app #as:not([hidden]) { background: var(--bg); color: var(--fg); --muted: var(--dim); --panel: transparent; font: 15px/1.5 var(--text); padding: 46px 22px 28px; gap: 30px; }
+.shell.app.me-open .focus { grid-template-areas: "know" "rest" "head"; }
+.shell.app.me-open .focus > .about { border: 0; border-radius: 0; background: none; padding: 0; gap: 14px; }
+.shell.app #as:not([hidden]) { gap: 6px; }
+.app .focus h3, .app #as h2 { font: 500 1.75em/1.1 var(--display); letter-spacing: -0.02em; text-transform: none; color: var(--fg); margin: 0 0 6px; }
+.app .know { gap: 10px; }
+.app .know + .know { margin-top: 26px; }
+.app .opts { gap: 2px 18px; }
+.app .opt { border: 0; background: none; padding: 4px 0; border-radius: 0; color: var(--dim); font: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 5px; }
+.app .opt[aria-pressed="true"] { background: none; color: var(--fg); font-weight: 700; text-decoration-color: var(--accent); text-decoration-thickness: 2.5px; }
+.app .opt.look { text-decoration: none; border-radius: 999px; padding: 0; }
+.app #head > div:first-child, .app #head .try, .app #about > div:nth-of-type(2), .app #about .how, .app #about .sent { display: none; }
+.app .focus .textlink, .app #as .textlink { color: var(--fg); text-align: left; }
+.app .form { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 13px 0; color: var(--fg); }
+.app .form strong { font: 600 1.05em/1.25 var(--text); }
+.app .form span { color: var(--dim); font-size: 0.9em; }
+.app .form[aria-pressed="true"] { box-shadow: none; border-color: var(--line); }
+.app .form[aria-pressed="true"] strong { color: var(--accent); }
+.app #as .model-row { display: none; }
+.app #as .who { margin-bottom: 10px; }
+.s ::selection, .app .focus ::selection, .app #as ::selection, .say ::selection { background: var(--accent); color: var(--on); }
 /* The cuts are for screens with room. A watch holds one thing and is set one way. */
 /* Sheet: no boxes. Type, space and hairlines carry it; the accent is kept for what is live and what is pressed. */
 .s:not(.on-watch)[data-cut="sheet"] :is(.p-card, .p-fig, .h-piece, .k-out, .k-field, .h-own, .talk-opt) { background: none; border-radius: 0; padding: 0; box-shadow: none; }
@@ -774,7 +796,7 @@ function boardBlocks(thing, P, k) {
   };
   const needed = new Set(k.shown.flatMap((u) => u.needs ?? []));
   if (P.asksFirst && k.pending) {
-    k.why.push(`It asks ${P.name} something, and what asks comes first. So the question is the screen, with what bears on it underneath.`);
+    k.why.push(`It asks ${P.name === 'You' ? 'you' : P.name} something, and what asks comes first. So the question is the screen, with what bears on it underneath.`);
     add({ piece: 'question', of: k.pending.id }, k.pending.id);
     for (const u of k.shown.filter((x) => x.kind !== 'ask').slice(0, 4)) add(blockFor(thing, u, needed.has(u.id) && !u.must), u.id);
     return close({ piece: 'answer', of: k.pending.id });
@@ -3470,7 +3492,7 @@ function about() {
     person === 'you' && !t.home && connectors ? h('button', { type: 'button', class: 'textlink', id: 'keep-docs', disabled: docs?.busy === true, text: docs?.busy ? 'Saving…' : 'Keep a copy in my Claude Docs', on: { click: async () => { docs = { busy: true }; about(); docs = { thing, ...(await keepInDocs(t)) }; about(); } } }) : null,
     docs?.thing === thing ? h('p', { class: 'who', id: 'docs-said' }, docs.said, docs.url ? [' ', h('a', { href: docs.url, target: '_blank', rel: 'noopener', text: 'Open it' })] : null) : null);
   put(document.getElementById('know'),
-    h('div', { class: 'know' }, h('h3', { text: `What the device knows about ${P.name}` }),
+    h('div', { class: 'know' }, h('h3', { text: comparing ? `What the device knows about ${P.name}` : 'About you' }),
       (isIdea(t) ? KNOWS_FOR_A_HELPER : KNOWS).filter(([, key]) => person !== 'you' || !['calendar', 'buzz', ...(comparing ? [] : ['device'])].includes(key)).map(([label, key, listed]) => [label, key, key === 'language' && !listed.some(([value]) => value === P.language) ? [...listed, [P.language, languageName(P.language)]] : listed]).map(([label, key, options]) => h('div', { class: 'know-row' }, h('span', { text: label }),
         h('div', { class: 'opts' }, options.map(([value, text]) => h('button', { type: 'button', class: 'opt', 'aria-pressed': String(P[key] === value), text, on: { click: () => learn({ [key]: value }) } }))))),
       h('div', { class: 'know-row' }, h('span', { text: 'Look' }), h('div', { class: 'opts' }, Object.keys(LOOKS).map(look),
@@ -3497,7 +3519,7 @@ function about() {
       h('p', { id: 'model-said', 'aria-live': 'polite', text: modelSaid ?? 'Claude is sent your description, or the statements and what the device knows. What comes back is read field by field; it can choose, order, word and draw, and can type no fact.' }),
       spec.by === 'Claude' ? h('button', { type: 'button', class: 'textlink', text: 'Back to the device’s own arrangement', on: { click: backToOwn } }) : null) : null);
   put(document.getElementById('about'),
-    h('div', {}, h('h3', { text: 'Why this screen' }), h('div', { class: 'whys' }, spec.why.map((text) => h('p', { text }))),
+    h('div', {}, h('h3', { text: comparing ? 'Why this screen' : 'Why it looks like this' }), h('div', { class: 'whys' }, spec.why.map((text) => h('p', { text }))),
       spec.dropped ? h('p', { class: 'who', text: `${spec.dropped} of its blocks named something that is not there, and were left out.` }) : null),
     h('div', {}, h('h3', { text: 'Made of' }), h('div', { class: 'pieces' }, h('span', { class: 'piece fresh', text: spec.form ? `${FORMS[spec.form].name}, as asked` : LAYOUT_NAMES[spec.layout] }), pieces.map((id) => h('span', { class: 'piece', text: KIT[id] })),
       Object.keys(RECIPES).map((name) => h('span', { class: 'piece fresh', text: `${name}, a piece drawn for the kit` }))),
@@ -3520,7 +3542,7 @@ function linksPanel() {
   const calendarSaid = linkSaid ?? (!calendar ? 'No calendar. A helper that needs your free time asks you each morning.'
     : calendar.way === 'sample' ? 'A made-up week to try things with. It is not yours.'
     : `${calendar.name}: ${calendar.events} events read, to ${day(calendar.until)}. Only the hours that are taken are kept, never what they are.${calendar.skipped ? ` ${calendar.skipped} not read: they repeat by month or year.` : ''}${calendar.until < Date.now() ? ' It has run out: give the file again.' : ''}`);
-  return h('div', { class: 'know', id: 'links' }, h('h3', { text: 'What this device is connected to' }),
+  return h('div', { class: 'know', id: 'links' }, h('h3', { text: comparing ? 'What this device is connected to' : 'Connected' }),
     h('div', { class: 'know-row' }, h('span', { text: 'Calendar' }), h('div', { class: 'opts' }, opt(!calendar, 'None', () => link({ calendar: null })),
       opt(calendar?.way === 'file', 'A calendar file…', () => pick.click(), 'link-file'), opt(calendar?.way === 'sample', 'A sample week', () => link({ calendar: { way: 'sample' } }), 'link-sample'), pick)),
     h('p', { class: 'who', id: 'calendar-said', text: calendarSaid }),
@@ -3539,7 +3561,9 @@ function focus() {
   put(document.getElementById('stage'), h('div', { class: 'stage-scroll' }, shown.node), tight ? h('p', { class: 'slide', text: 'This screen was made for a wide display. Slide it sideways.' }) : null);
   for (const button of document.querySelectorAll('.person')) button.setAttribute('aria-pressed', String(button.dataset.person === person));
   // In the app the bar is part of the screen: it wears whatever look the screen above it wears.
-  if (!comparing) for (const id of ['say', 'say-hints']) wear(document.getElementById(id), shown.spec().look ? lookFrom(shown.spec().look) : lookOf(people.you));
+  // In the app everything around the screen wears the screen's look: the line, the words it offers, and the two sheets.
+  const around = [document.getElementById('say'), document.getElementById('say-hints'), document.querySelector('.focus'), document.getElementById('as')];
+  for (const el of around) { if (comparing) el.removeAttribute('style'); else wear(el, shown.spec().look ? lookFrom(shown.spec().look) : lookOf(people.you)); }
   bar();
   about();
 }
@@ -3590,7 +3614,7 @@ function bar() {
     : []);
   // In the app there is one line and nothing else. What else can be said here is offered as words while the line is in use.
   const fitting = t.home ? [] : Object.entries(formsFor(t)).filter(([id, form]) => !form.fits(t, people.you) && id !== (shown?.spec().form ?? FORM_OF_LAYOUT[shown?.spec().layout])).slice(0, 3).map(([id]) => ({ page: formsFor(t) === WORKING_FORMS ? 'what it is' : 'a page', story: 'a story', todo: 'a to-do list', numbers: 'other numbers', glance: 'a glance', data: 'the data', use: 'use it' })[id]);
-  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home || !me.talked ? [] : ['send', ...fitting]), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => saidIt(words) } })));
+  put(document.getElementById('say-hints'), comparing ? [] : [...(meOpen ? ['close'] : [...(t.home || !me.talked ? [] : ['send', ...fitting]), 'me'])].map((words) => h('button', { type: 'button', text: words, on: { mousedown: (event) => event.preventDefault(), click: () => { document.getElementById('say-text').blur(); saidIt(words); } } })));
 }
 function table() {
   const shell = document.querySelector('.shell');
@@ -3779,7 +3803,8 @@ Promise.resolve(window.claude?.use?.('mcp')).then((got) => { if (typeof got?.cal
 // The one way in: what is said in the line, what is picked, and what is dropped anywhere on the page.
 const sayText = document.getElementById('say-text');
 const sayFiles = document.getElementById('say-files');
-document.getElementById('say').addEventListener('submit', (event) => { event.preventDefault(); const words = sayText.value; sayText.value = ''; saidIt(words); });
+// Once something is said the line lets go, so the words it offered stop covering what is under them.
+document.getElementById('say').addEventListener('submit', (event) => { event.preventDefault(); const words = sayText.value; sayText.value = ''; sayText.blur(); saidIt(words); });
 document.getElementById('say-add').addEventListener('click', () => sayFiles.click());
 document.getElementById('say-home').addEventListener('click', () => saidIt('home'));
 put(document.getElementById('say-home'), ic('home'));
