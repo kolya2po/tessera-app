@@ -3741,16 +3741,108 @@ function drawSteps(t, u, c) {
   return u.items.map((item, i) => { const key = `${u.id}:${i}`; const done = (c.state.done ?? []).includes(key);
     return h('button', { type: 'button', class: `d-step${done ? ' done' : ''}`, 'aria-pressed': String(done), on: { click: () => { c.state.done = done ? c.state.done.filter((one) => one !== key) : [...(c.state.done ?? []), key]; c.redraw(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, nodes(t, item, t.lang))); });
 }
-function drawBlocks(t, blocks, c) {
+// ---- every screen is data ------------------------------------------------------------------------------
+// The app has no screen of its own. Whatever is on it, home and the way between things included, is a
+// list of parts made for this person where they are (`screenFor`), and the host only draws parts. A part
+// says what it is, never how it looks:
+//   {title, sub}  {h}  {note}                    words of whoever made the screen
+//   {says, text, caution}  {show}  {mine}        the container's statements, in other words or as they are
+//   {tile, label}  {marks}  {steps}  {fold, blocks}  {caution, blocks}  {doc}  {tool}  {found}
+//   {go, label, note, as}                        going somewhere: home, a thing, one view of it
+//   {put, label, fresh}  {set, label}  {made, …}  putting files in, changing what the device knows
+// A model may write the parts that speak of a container (`screenFrom` reads those); the rest come from
+// the plain generator below, and are drawn the same way.
+const whereNow = (t, st, tab) => (deskSheet === 'things' || !t ? { at: 'home' } : { at: 'thing', id: t.id, view: tab });
+function foldedUnits(t, units, depth, c) {
+  const groups = [];
+  for (const u of units) { const head = (u.path ?? [u.under ?? ''])[depth] ?? ''; if (groups.at(-1)?.head !== head) groups.push({ head, units: [] }); groups.at(-1).units.push(u); }
+  return groups.map((group) => {
+    let sub = null;
+    const kids = group.units.flatMap((u) => { const next = (u.path ?? [])[depth + 1] ?? null; const title = next && next !== sub ? h('h4', { text: next }) : null; sub = next; return [title, drawUnit(t, u, c, false)]; });
+    return group.head && groups.length > 1 ? h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: group.head }), h('small', { text: String(group.units.length) })), h('div', { class: 'd-in' }, kids)) : h('div', { class: 'd-in' }, kids);
+  });
+}
+// The plain generator: the screen for this person where they are, made with no model.
+function screenFor(P, where) {
+  const things = held();
+  if (where.at === 'home') {
+    if (!things.length) return [{ title: 'Nothing here yet' }, { note: 'A container is a place for what belongs together: what you say, documents, tables, pictures. Put something in and it is made.', plain: true },
+      { put: true, label: 'Choose files' }, { note: 'Or say it in the line below. A container made elsewhere opens by its index.html, with its files chosen beside it.' }, { set: 'samples', label: 'Look at a few samples first' }];
+    const row = (one) => ({ go: { at: 'thing', id: one.id }, label: calledOf(one, P, stateFor(one.id, 'you')), note: one.docs ? `${one.docs.length} documents` : isContainer(one) ? `${one.units.length} statements` : '' });
+    const kinds = [['Containers', things.filter(isContainer)], ['Tools', things.filter(isCalc)], ['Helpers', things.filter(isIdea)]].filter(([, list]) => list.length);
+    const open = openNow(P);
+    return [{ go: { at: 'back' }, label: calledOf(THINGS[thing], P, stateFor(thing, 'you')), as: 'top' }, { title: 'Yours', small: true },
+      ...(open.length ? [{ h: 'Open now' }, ...open.map((one) => ({ go: { at: 'thing', id: one.id }, label: one.text, note: one.of }))] : []),
+      ...kinds.flatMap(([name, list]) => [...(kinds.length > 1 ? [{ h: name }] : []), ...list.map(row)]),
+      { put: true, label: 'New container from files', fresh: true }, { note: 'While this list is open, what you say below starts a new container too.' },
+      { set: 'send', label: 'Send the open one' }, { set: 'me', label: 'What this device knows about you' }];
+  }
+  const t = THINGS[where.id];
+  const st = stateFor(t.id, 'you');
+  const kept = me.screens[t.id] ?? [];
+  const top = [{ go: { at: 'home' }, label: calledOf(t, P, st), as: 'top' }, ...(t.place && t.payload?.mine ? [{ put: true, label: 'Add files', as: 'top' }] : []), ...(found ? [{ found: true }] : [])];
+  if (where.view === null) return [...top, { tool: true }];
+  const views = [...(t.context ? [['context', 'Context']] : []), ...kept.map((one, i) => [`s${i}`, one.words.length > 26 ? `${one.words.slice(0, 25)}…` : one.words]),
+    ...(t.docs ?? []).map((one, i) => [i, one.file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ')]), ...(!t.docs && (t.context || kept.length) ? [['all', 'Everything in it']] : [])];
+  const ways = views.length > 1 ? views.map(([view, label]) => ({ go: { at: 'thing', id: t.id, view }, label, as: 'tab', here: view === where.view })) : [];
+  if (where.view === 'context') {
+    const made = composeContext(t, P);
+    const inIt = new Set(t.context.flatMap((b) => (b.show ? [b.show] : b.says ?? [])));
+    const out = t.units.filter((u) => u.must && !inIt.has(u.id)).length;
+    const steps = (blocks) => blocks.map((b) => (b.show && unitOf(t, b.show).shape === 'list' ? { steps: b.show } : b));
+    return [...top, ...ways, { title: t.title ?? t.label }, ...made.parts.flatMap(({ as, sec }) => (as === 'marks' ? [{ marks: true }] : as === 'limits' ? [{ caution: sec.title, blocks: sec.blocks }]
+      : as === 'folded' ? [{ fold: sec.title.replace(/^More:\s*/i, '').replace(/^\p{Ll}/u, (first) => first.toUpperCase()), blocks: sec.blocks }] : [{ h: sec.title }, ...(as === 'next' ? steps(sec.blocks) : as === 'first' ? sec.blocks.slice(0, 1) : sec.blocks)])),
+      { made: made.why, amount: true, extra: out ? ` ${out} essential ${out === 1 ? 'statement of the documents is' : 'statements of the documents are'} not in this context.` : '' }];
+  }
+  if (typeof where.view === 'string' && where.view !== 'all') {
+    const made = kept[Number(where.view.slice(1))];
+    // Whatever was asked for, what the author marked is on the screen: here if the screen did not already hold it.
+    const has = new Set(made.blocks.flatMap((b) => (b.tile ? [b.tile] : b.show ? (unitOf(t, b.show).marks ?? []).flatMap((mark) => mark.values) : [...(b.text ?? []), ...(b.mine ?? [])].filter((part) => part.v).map((part) => part.v))));
+    const missed = marksOf(t).filter((mark) => !mark.values.some((id) => has.has(id)));
+    return [...top, ...ways, { title: made.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }, ...made.blocks, ...(missed.length ? [{ h: 'The author also points at' }, { marks: missed }] : []), { made: 'Made from what you said, and kept. ', forget: made }];
+  }
+  const doc = typeof where.view === 'number' ? t.docs[where.view] : null;
+  return [...top, ...ways, { title: doc?.title ?? t.title ?? t.label, sub: doc ? `${doc.file.name} · ${bytes(doc.file.size)}${doc.file.here ? '' : ' · the file itself is not in this copy'}` : null }, { doc: doc ?? 'all' }];
+}
+// A list as steps: each is ticked off on this device, and the tick stays here.
+function drawSteps(t, u, c) {
+  return u.items.map((item, i) => { const key = `${u.id}:${i}`; const done = (c.state.done ?? []).includes(key);
+    return h('button', { type: 'button', class: `d-step${done ? ' done' : ''}`, 'aria-pressed': String(done), on: { click: () => { c.state.done = done ? c.state.done.filter((one) => one !== key) : [...(c.state.done ?? []), key]; c.redraw(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, nodes(t, item, t.lang))); });
+}
+// The host's whole knowledge of screens: how each part is drawn, and what touching it does.
+function drawParts(t, blocks, c, host) {
   const where = (id) => t.docs?.find((doc) => doc.units.includes(id))?.file.name ?? null;
+  const words = (segs) => (t ? nodes(t, segs, t.lang) : segs.filter((part) => typeof part === 'string'));
+  const mark = (one) => h('div', { class: 'd-mark' }, h('strong', { text: one.text }), h('span', { text: one.label }), one.from ? h('small', { text: one.from }) : null);
+  const run = (i, same) => { const end = blocks.findIndex((one, j) => j > i && !same(one)); return blocks.slice(i, end < 0 ? undefined : end); };
+  const go = (b) => () => host.go(b.go);
   return blocks.map((b, i) => {
-    if (b.h) return h('h2', { class: 'd-h', text: b.h });
+    if (b.title) return b.small ? h('h2', { text: b.title }) : h('header', { class: 'd-doc' }, h('h1', { text: b.title }), b.sub ? h('p', { class: 'dim', text: b.sub }) : null);
+    if (b.h) return h(host.home ? 'h3' : 'h2', { class: host.home ? null : 'd-h', text: b.h });
+    if (b.note && !b.go) return h('p', { class: b.plain ? null : 'dim', text: b.note });
+    if (b.go && b.as === 'top') return blocks[i - 1]?.as === 'top' ? null : h('div', { class: 'd-top' }, run(i, (one) => one.as === 'top').map((one) => (one.go
+      ? h('button', { type: 'button', class: 'd-name-of', id: 'd-things', 'aria-expanded': String(host.home), on: { click: () => host.go(one.go) } }, h('span', { text: one.label }))
+      : h('button', { type: 'button', class: 'd-layout', id: 'd-add', text: one.label, on: { click: host.files } }))));
+    if (b.put && b.as === 'top') return null;
+    if (b.go && b.as === 'tab') return blocks[i - 1]?.as === 'tab' ? null : h('div', { class: 'd-docs', role: 'tablist' }, run(i, (one) => one.as === 'tab').map((one) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(one.here), text: one.label, on: { click: () => host.go(one.go) } })));
+    if (b.go) return h('button', { type: 'button', class: 'd-row', 'aria-current': String(b.go.id === thing && !b.note?.includes(' ')), on: { click: go(b) } }, h('strong', { text: b.label }), h('span', { text: b.note ?? '' }));
+    if (b.put) return h('button', { type: 'button', class: 'd-go', id: 'd-new', text: b.label, on: { click: () => { if (b.fresh) newNext = true; host.files(); } } });
+    if (b.set) return h('button', { type: 'button', class: 'd-link', id: `d-${b.set}`, text: b.label, on: { click: () => host.set(b.set) } });
+    if (b.made) return h('p', { class: 'd-made' }, b.made, b.amount && host.P.amount !== 'gist' ? h('button', { type: 'button', class: 'd-link', id: 'd-less', text: 'Less', on: { click: () => host.set('less') } }) : null, b.amount && host.P.amount === 'main' ? ' · ' : null,
+      b.amount && host.P.amount !== 'all' ? h('button', { type: 'button', class: 'd-link', id: 'd-more', text: 'More', on: { click: () => host.set('more') } }) : null, b.extra ?? null,
+      b.forget ? h('button', { type: 'button', class: 'd-link', id: 'd-forget', text: 'Forget this screen', on: { click: () => host.set('forget', b.forget) } }) : null);
+    if (b.found) return host.found();
+    if (b.tool) return host.tool();
+    if (b.doc) return h('section', { class: 'd-rest' }, foldedUnits(t, b.doc === 'all' ? t.units : b.doc.units.filter((id) => id !== b.doc.declares).map((id) => unitOf(t, id)), b.doc === 'all' ? 0 : 1, c));
+    if (b.marks) return h('div', { class: 'd-marks' }, (b.marks === true ? marksOf(t) : b.marks).map(mark));
+    if (b.fold) return h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: b.fold }), h('small', { text: String(b.blocks.length) })), h('div', { class: 'd-in' }, drawParts(t, b.blocks, c, host)));
+    if (typeof b.caution === 'string') return h('aside', { class: 'd-caution' }, h('h2', { class: 'd-h', text: b.caution }), drawParts(t, b.blocks, c, host));
     // Numbers set out one after another stand side by side.
-    if (b.tile) return blocks[i - 1]?.tile ? null : h('div', { class: 'd-marks' }, blocks.slice(i, blocks.findIndex((one, j) => j > i && !one.tile) < 0 ? undefined : blocks.findIndex((one, j) => j > i && !one.tile)).map((one) => h('div', { class: 'd-mark' }, h('strong', { text: t.values[one.tile].shown }), h('span', { text: one.label }))));
+    if (b.tile) return blocks[i - 1]?.tile ? null : h('div', { class: 'd-marks' }, run(i, (one) => one.tile).map((one) => h('div', { class: 'd-mark' }, h('strong', { text: t.values[one.tile].shown }), h('span', { text: one.label }))));
     if (b.steps) return h('div', { class: 'd-next' }, drawSteps(t, unitOf(t, b.steps), c));
     if (b.show) return drawUnit(t, unitOf(t, b.show), c, false);
-    if (b.mine) return h('p', { class: 'd-mine' }, nodes(t, b.mine, t.lang), h('small', { text: 'Added by whoever made this screen, not said in the documents.' }));
-    return h('div', { class: `d-says${b.caution ? ' d-caution' : ''}` }, h('p', { class: 'd-say' }, nodes(t, b.text, t.lang)),
+    if (b.mine) return h('p', { class: 'd-mine' }, words(b.mine), h('small', { text: 'Added by whoever made this screen, not said in the documents.' }));
+    return h('div', { class: `d-says${b.caution ? ' d-caution' : ''}` }, h('p', { class: 'd-say' }, words(b.text)),
       h('details', { class: 'd-src' }, h('summary', { text: b.says.length === 1 ? 'In the author’s words' : `In the author’s words, ${b.says.length} statements` }),
         b.says.map((id) => [drawUnit(t, unitOf(t, id), c, false), where(id) ? h('small', { text: where(id) }) : null])));
   });
@@ -3777,105 +3869,36 @@ function deskScreen(P) {
   const st = t ? stateFor(t.id, 'you') : null;
   const again = () => table();
   const kept = t ? me.screens[t.id] ?? [] : [];
-  // What is on screen: the context, a screen its person asked for, or one of its documents.
-  const tab = !t || !isContainer(t) ? null : typeof st.tab === 'string' && kept[Number(st.tab.slice(1))] ? st.tab : typeof st.tab === 'number' && t.docs?.[st.tab] ? st.tab : t.context ? 'context' : t.docs ? 0 : 'all';
-  const doc = typeof tab === 'number' ? t.docs[tab] : null;
   // A container can also be worked on in one of the forms it fits: to tick off, with other numbers, one statement at a time.
   const form = t && isContainer(t) && st.form && st.form !== 'page' && wantedForm(t, P, st) ? st.form : null;
+  const tab = !t || !isContainer(t) || form ? null : typeof st.tab === 'string' && kept[Number(st.tab.slice(1))] ? st.tab : typeof st.tab === 'number' && t.docs?.[st.tab] ? st.tab : t.context ? 'context' : t.docs ? 0 : 'all';
   const c = t && isContainer(t) ? { thing: t, P, state: st, lang: t.lang, look, live: true, note: noted, t: WORDS[t.lang] ?? WORDS.en, redraw: () => { saveSoon(); again(); } } : null;
-  const files = () => document.getElementById('say-files').click();
-
-  const empty = () => h('div', { class: 'd-empty' }, h('h1', { text: 'Nothing here yet' }),
-    h('p', { text: 'A container is a place for what belongs together: what you say, documents, tables, pictures. Put something in and it is made.' }),
-    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'Choose files', on: { click: files } }),
-    h('p', { class: 'dim', text: 'Or say it in the line below. A container made elsewhere opens by its index.html, with its files chosen beside it.' }),
-    h('button', { type: 'button', class: 'd-link', id: 'd-samples', text: 'Look at a few samples first', on: { click: () => { me.samples = true; save(); again(); } } }));
-
-  // What its person holds, by what each thing is: containers are one kind among the others.
-  const row = (one) => h('button', { type: 'button', class: 'd-row', 'aria-current': String(one.id === thing), on: { click: () => { thing = one.id; deskSheet = null; found = null; useNow(one.id); again(); } } },
-    h('strong', { text: calledOf(one, P, stateFor(one.id, 'you')) }), h('span', { text: one.docs ? `${one.docs.length} documents` : isContainer(one) ? `${one.units.length} statements` : '' }));
-  const kinds = [['Containers', things.filter(isContainer)], ['Tools', things.filter(isCalc)], ['Helpers', things.filter(isIdea)]].filter(([, list]) => list.length);
-  const thingsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Yours' }),
-    openNow(P).length ? [h('h3', { text: 'Open now' }), openNow(P).map((one) => h('button', { type: 'button', class: 'd-row', on: { click: () => { thing = one.id; deskSheet = null; found = null; again(); } } }, h('strong', { text: one.text }), h('span', { text: one.of })))] : null,
-    kinds.map(([name, list]) => [kinds.length > 1 ? h('h3', { text: name }) : null, list.map(row)]),
-    h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'New container from files', on: { click: () => { newNext = true; files(); } } }),
-    h('p', { class: 'dim', text: 'While this list is open, what you say below starts a new container too.' }),
-    h('div', { class: 'd-acts' }, h('button', { type: 'button', class: 'd-link', id: 'd-send', text: 'Send the open one', on: { click: () => { deskSheet = null; again(); copyToSend(t); } } }),
-      h('button', { type: 'button', class: 'd-link', id: 'd-me', text: 'What this device knows about you', on: { click: () => { deskSheet = null; saidIt('me'); } } })));
-
-  const answer = () => h('div', { class: 'd-found' }, h('h2', { text: found.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }),
-    found.hits.length ? found.hits.map((hit) => h('button', { type: 'button', class: 'sf-hit', on: { click: () => { thing = hit.id; found = null; again(); } } }, h('span', { text: hit.text }), h('small', { text: hit.from })))
-      : h('p', { class: 'dim', text: 'Nothing you hold says anything about that.' }),
-    h('button', { type: 'button', class: 'd-link', id: 'd-found-done', text: 'Done', on: { click: () => { found = null; again(); } } }));
-
-  // Everything of a document, or of a container with none, folded under the headings its author gave it.
-  function folded(units, depth) {
-    const groups = [];
-    for (const u of units) { const head = (u.path ?? [u.under ?? ''])[depth] ?? ''; if (groups.at(-1)?.head !== head) groups.push({ head, units: [] }); groups.at(-1).units.push(u); }
-    return groups.map((group) => {
-      let sub = null;
-      const kids = group.units.flatMap((u) => { const next = (u.path ?? [])[depth + 1] ?? null; const title = next && next !== sub ? h('h4', { text: next }) : null; sub = next; return [title, drawUnit(t, u, c, false)]; });
-      return group.head && groups.length > 1 ? h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: group.head }), h('small', { text: String(group.units.length) })), h('div', { class: 'd-in' }, kids)) : h('div', { class: 'd-in' }, kids);
-    });
-  }
-  function body() {
-    if (form) { inner = screen(t, P, st, true, () => saveSoon(), null, noted); return h('div', { class: 'd-tool' }, inner.el); }
-    if (!isContainer(t)) { inner = isCalc(t) ? calcScreen(t, 'you', P, st, true, () => saveSoon(), helperDesign('you')) : helperScreen(t, 'you', P, st, true, () => saveSoon(), passedOn, helperDesign('you')); return h('div', { class: 'd-tool' }, inner.el); }
-    if (tab === 'context') {
-      // The context is not shown as it was written: this person's device makes its screen of it.
-      const made = composeContext(t, P);
-      const part = {
-        marks: () => h('div', { class: 'd-marks' }, marksOf(t).map((mark) => h('div', { class: 'd-mark' }, h('strong', { text: mark.text }), h('span', { text: mark.label }), mark.from ? h('small', { text: mark.from }) : null))),
-        limits: (sec) => h('aside', { class: 'd-caution' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
-        next: (sec) => h('section', { class: 'd-next' }, h('h2', { class: 'd-h', text: sec.title }), sec.blocks.map((b) => {
-          const u = b.show ? unitOf(t, b.show) : null;
-          return u?.shape === 'list' ? drawSteps(t, u, c) : drawBlocks(t, [b], c);
-        })),
-        open: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
-        first: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks.slice(0, 1), c)),
-        folded: (sec) => h('details', { class: 'd-fold' }, h('summary', {}, h('span', { text: sec.title.replace(/^More:\s*/i, '').replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }), h('small', { text: String(sec.blocks.length) })), h('div', { class: 'd-in' }, drawBlocks(t, sec.blocks, c))),
-      };
-      const amounts = ['gist', 'main', 'all'];
-      const turn = (step) => () => { P.amount = amounts[amounts.indexOf(P.amount) + step]; me.from.amount = 'said'; save(); again(); };
-      const inIt = new Set(t.context.flatMap((b) => (b.show ? [b.show] : b.says ?? [])));
-      const out = t.units.filter((u) => u.must && !inIt.has(u.id)).length;
-      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: t.title ?? t.label })),
-        made.parts.map(({ as, sec }) => part[as](sec)),
-        h('p', { class: 'd-made' }, `${made.why} `,
-          P.amount !== 'gist' ? h('button', { type: 'button', class: 'd-link', id: 'd-less', text: 'Less', on: { click: turn(-1) } }) : null, P.amount !== 'gist' && P.amount !== 'all' ? ' · ' : null,
-          P.amount !== 'all' ? h('button', { type: 'button', class: 'd-link', id: 'd-more', text: 'More', on: { click: turn(1) } }) : null,
-          out ? ` ${out} essential ${out === 1 ? 'statement of the documents is' : 'statements of the documents are'} not in this context.` : ''));
-    }
-    if (typeof tab === 'string' && tab !== 'all') {
-      const made = kept[Number(tab.slice(1))];
-      // Whatever was asked for, what the author marked is on the screen: here if the screen did not already hold it.
-      const has = new Set(made.blocks.flatMap((b) => (b.tile ? [b.tile] : b.show ? (unitOf(t, b.show).marks ?? []).flatMap((mark) => mark.values) : [...(b.text ?? []), ...(b.mine ?? [])].filter((part) => part.v).map((part) => part.v))));
-      const missed = marksOf(t).filter((mark) => !mark.values.some((id) => has.has(id)));
-      return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: made.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) })), drawBlocks(t, made.blocks, c),
-        missed.length ? h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: 'The author also points at' }), h('div', { class: 'd-marks' }, missed.map((mark) => h('div', { class: 'd-mark' }, h('strong', { text: mark.text }), h('span', { text: mark.label }), mark.from ? h('small', { text: mark.from }) : null)))) : null,
-        h('p', { class: 'd-made' }, 'Made from what you said, and kept. ', h('button', { type: 'button', class: 'd-link', id: 'd-forget', text: 'Forget this screen', on: { click: () => { me.screens[t.id] = kept.filter((one) => one !== made); st.tab = undefined; save(); again(); } } })));
-    }
-    return h('div', { class: 'd-body' }, h('header', { class: 'd-doc' }, h('h1', { text: doc?.title ?? t.title ?? t.label }),
-      doc ? h('p', { class: 'dim', text: `${doc.file.name} · ${bytes(doc.file.size)}${doc.file.here ? '' : ' · the file itself is not in this copy'}` }) : null),
-      h('section', { class: 'd-rest' }, folded(doc ? doc.units.filter((id) => id !== doc.declares).map((id) => unitOf(t, id)) : t.units, doc ? 1 : 0)));
-  }
-  const tabs = () => {
-    const all = [...(t.context ? [['context', 'Context']] : []), ...kept.map((one, i) => [`s${i}`, one.words.length > 26 ? `${one.words.slice(0, 25)}…` : one.words]),
-      ...(t.docs ?? []).map((one, i) => [i, one.file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ')]), ...(!t.docs && (t.context || kept.length) ? [['all', 'Everything in it']] : [])];
-    return all.length > 1 ? h('div', { class: 'd-docs', role: 'tablist' }, all.map(([id, name]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(id === tab), text: name, on: { click: () => { st.tab = id; st.form = undefined; saveSoon(); again(); } } }))) : null;
-  };
-
+  const where = whereNow(t, st, tab);
+  const amounts = ['gist', 'main', 'all'];
+  // What touching a part does. This, and how parts are drawn, is all the host knows.
+  const host = { P, home: where.at === 'home', files: () => document.getElementById('say-files').click(),
+    go: (to) => { if (to.at === 'home') deskSheet = 'things'; else { deskSheet = null; if (to.at === 'thing') { thing = to.id; found = null; useNow(to.id); if (to.view !== undefined) { const state = stateFor(to.id, 'you'); state.tab = to.view; state.form = undefined; } } } saveSoon(); again(); },
+    set: (what, arg) => {
+      if (what === 'samples') me.samples = true;
+      else if (what === 'less' || what === 'more') { P.amount = amounts[amounts.indexOf(P.amount) + (what === 'less' ? -1 : 1)]; me.from.amount = 'said'; }
+      else if (what === 'forget') { me.screens[t.id] = kept.filter((one) => one !== arg); st.tab = undefined; }
+      else if (what === 'send') { deskSheet = null; again(); return copyToSend(t); }
+      else if (what === 'me') { deskSheet = null; return saidIt('me'); }
+      save(); again();
+    },
+    found: () => h('div', { class: 'd-found' }, h('h2', { text: found.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) }),
+      found.hits.length ? found.hits.map((hit) => h('button', { type: 'button', class: 'sf-hit', on: { click: () => { thing = hit.id; found = null; again(); } } }, h('span', { text: hit.text }), h('small', { text: hit.from })))
+        : h('p', { class: 'dim', text: 'Nothing you hold says anything about that.' }),
+      h('button', { type: 'button', class: 'd-link', id: 'd-found-done', text: 'Done', on: { click: () => { found = null; again(); } } })),
+    tool: () => { inner = form ? screen(t, P, st, true, () => saveSoon(), null, noted) : isCalc(t) ? calcScreen(t, 'you', P, st, true, () => saveSoon(), helperDesign('you')) : helperScreen(t, 'you', P, st, true, () => saveSoon(), passedOn, helperDesign('you')); return h('div', { class: 'd-tool' }, inner.el); } };
+  const parts = screenFor(P, where);
+  const chrome = parts.filter((b) => b.as === 'top' || b.as === 'tab' || b.found);
   root.className = 's l-desk on-phone';
   wear(root, look);
-  if (!t) put(root, empty());
-  else put(root,
-    h('div', { class: 'd-top' }, h('button', { type: 'button', class: 'd-name-of', id: 'd-things', 'aria-expanded': String(deskSheet === 'things'), on: { click: () => { deskSheet = deskSheet === 'things' ? null : 'things'; again(); } } }, h('span', { text: calledOf(t, P, st) })),
-      t.place && t.payload?.mine ? h('button', { type: 'button', class: 'd-layout', id: 'd-add', text: 'Add files', on: { click: files } }) : null),
-    found ? answer() : null,
-    deskSheet === 'things' ? thingsSheet() : [isContainer(t) && !form ? tabs() : null, body()]);
+  put(root, drawParts(t, chrome, c, host), h('div', { class: !things.length ? 'd-empty' : host.home ? 'd-sheet' : where.view === 'context' || typeof where.view === 'string' && where.view !== 'all' ? 'd-body d-ctx' : 'd-body' }, drawParts(t, parts.filter((b) => !chrome.includes(b)), c, host)));
   // The first time a container is opened where there is a model, its screen is made for this person, and kept.
-  if (tab === 'context' && sample && !me.tried[t.id] && deskSheet !== 'things') { me.tried[t.id] = true; save(); queueMicrotask(() => screenSaid('', t)); }
-  const spec = { layout: 'desk', device: 'phone', by: 'the device', blocks: [], why: ['One container at a time, opened on its context.'] };
+  if (where.view === 'context' && sample && !me.tried[t.id]) { me.tried[t.id] = true; save(); queueMicrotask(() => screenSaid('', t)); }
+  const spec = { layout: 'desk', device: 'phone', by: 'the device', blocks: [], why: ['Every screen is a list of parts made for its person where they are.'] };
   return { el: root, stop: () => inner?.stop?.(), spec: () => inner?.spec?.() ?? spec };
 }
 // What the one line is for, where its person is: said in the line itself, with a few things to say offered under it.
