@@ -3325,7 +3325,7 @@ async function design(sampled, from) {
 // ---- yours: the same engine as the thing itself. It learns one person, keeps their things, and has no
 // screen of its own: a home is composed for whoever holds the device, like everything else. ------------
 const ME_KEY = 'tessera-sketch:me';
-const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {}, used: {}, screens: {}, samples: false, last: null };
+const me = { from: {}, talked: false, learned: { forms: {}, rest: [] }, tokens: [], designs: {}, links: { calendar: null, tell: null }, own: {}, used: {}, screens: {}, tried: {}, samples: false, last: null };
 // What you did with each thing is kept with the rest: your answers, a helper as you made it, a tool's
 // numbers and its record. A running timer and an open sheet are of the moment and are not.
 const keptStates = () => Object.fromEntries(Object.entries(states).filter(([key]) => key.endsWith('/you')).map(([key, st]) => [key, { ...st, left: undefined, sheet: undefined }]));
@@ -3579,13 +3579,16 @@ function screenFrom(raw, t) {
     if (!b || typeof b !== 'object') return null;
     if (typeof b.h === 'string' && b.h.trim()) return { h: b.h.trim().slice(0, 80) };
     if (typeof b.show === 'string') return t.units.some((u) => u.id === b.show) ? { show: b.show } : null;
+    // A number set out on its own is one of the container's values, with a few words that hold no number of their own.
+    if (typeof b.tile === 'string') return Object.hasOwn(t.values, b.tile) && typeof b.label === 'string' && !/\d/.test(b.label) ? { tile: b.tile, label: b.label.trim().slice(0, 70) } : null;
+    if (typeof b.steps === 'string') return t.units.find((u) => u.id === b.steps)?.shape === 'list' ? { steps: b.steps } : null;
     const segs = (text) => (Array.isArray(text) ? text : String(text).split(/\{([a-z0-9.]+)\}/).map((part, i) => (i % 2 ? { v: part } : part))).filter((part) => part !== '');
     if (typeof b.mine === 'string' || Array.isArray(b.mine)) { const mine = segs(b.mine).filter((part) => typeof part === 'string' || Object.hasOwn(t.values, part.v)); return mine.length ? { mine } : null; }
     const says = (Array.isArray(b.says) ? b.says : String(b.says ?? '').split(/\s+/)).filter((id) => t.units.some((u) => u.id === id));
     if (!says.length || (typeof b.text !== 'string' && !Array.isArray(b.text))) return null;
     const text = segs(b.text);
     const sound = text.every((part) => (typeof part === 'string' ? !/\d/.test(part) : Object.hasOwn(t.values, part.v) && says.includes(t.values[part.v].unit)));
-    return sound && text.some((part) => typeof part === 'string' && part.trim()) ? { says, text } : null;
+    return sound && text.some((part) => typeof part === 'string' && part.trim()) ? { says, text, ...(b.caution === true && { caution: true }) } : null;
   }).filter((b) => b ?? (dropped += 1, false));
   return blocks.length ? { words: typeof raw.words === 'string' ? raw.words.slice(0, 200) : '', blocks, dropped } : null;
 }
@@ -3597,10 +3600,12 @@ function screenRequest(words, t, P) {
   const person = [`reads ${P.language}`, { gist: 'wants only the gist', main: 'wants the main points', all: 'wants everything' }[P.amount], P.words === 'plain' ? 'wants plain words' : null,
     ...(me.learned.rest ?? []).slice(0, 6).map((note) => String(note).slice(0, 120)), ...(me.screens[t.id] ?? []).slice(0, 4).map((one) => `asked before: ${one.words}`)].filter(Boolean).join('; ');
   return ['A person looks at one container on their own device and says what they want to see. Make that screen out of the container, as one JSON object and nothing else: {"blocks": [BLOCK, ...]}, with at most 30 blocks.',
-    `What they said: ${words.slice(0, 400)}`, `What their device knows of them: ${person}.`,
+    words ? `What they said: ${words.slice(0, 400)}` : 'They have said nothing yet. Make the screen this person would want to see first when they open it: what it is, what matters, what to be careful of, what is theirs to do.', `What their device knows of them: ${person}.`,
     'BLOCK is one of:', '{"h": a short heading in your words}',
     '{"says": "ID ID", "text": one or two sentences in plain words saying what those statements say. Every number, date and measure is written as {VALUE_ID}, taken from those statements: never type a digit.}',
     '{"show": "ID"} for the statement, table, figure or list itself, as its author made it. Use it for tables and figures, and where the exact words matter.',
+    '{"tile": "VALUE_ID", "label": a few words, with no digit, saying what that number is} sets one number out large. Put the few numbers that matter side by side as tiles.',
+    '{"steps": "ID"} shows a list as steps this person ticks off. Add "caution": true to a "says" block that is a limit or a warning.',
     '{"mine": something the container does not say: a comparison, a caution, that it does not hold what was asked. It is shown as yours, not the author\'s.}',
     `The author marked these for every reader; show the statements they stand in where they bear on what was asked: ${marksOf(t).map((mark) => `${mark.values[0].split('.')[0]} (${mark.text})`).slice(0, 12).join(', ') || 'none'}.`,
     'Give only what answers what they said, shaped for this person. The statements, as id | what it is | its text with each value written {id=shown}:', ...all.map((one) => one.slice(0, room))].join('\n');
@@ -3624,11 +3629,11 @@ async function screenSaid(words, t) {
   const note = document.getElementById('opened');
   const st = stateFor(t.id, 'you');
   const plain = () => screenFromWords(words, t, typeof st.tab === 'number' ? t.docs?.[st.tab] : null);
-  if (!sample) { const made = plain(); if (made) { keepScreen(t, made); table(); } return Boolean(made); }
+  if (!sample || !words && !t.context) { const made = words ? plain() : null; if (made) { keepScreen(t, made); table(); } return Boolean(made); }
   note.textContent = 'Working it out…';
   try {
-    const made = screenFrom({ ...(objectIn((await sample(screenRequest(words, t, people.you), { cache: false })).text ?? '') ?? {}), words }, t) ?? plain();
-    if (!made) { note.textContent = 'What came back could not be used, so nothing changed.'; return true; }
+    const made = screenFrom({ ...(objectIn((await sample(screenRequest(words, t, people.you), { cache: false })).text ?? '') ?? {}), words: words || 'For you' }, t) ?? (words ? plain() : null);
+    if (!made) { note.textContent = words ? 'What came back could not be used, so nothing changed.' : ''; return true; }
     keepScreen(t, made);
     note.textContent = made.dropped ? `Kept. ${made.dropped === 1 ? 'One part was' : `${made.dropped} parts were`} left out: each named something the container does not hold, or typed a number of its own.` : '';
     table();
@@ -3731,15 +3736,35 @@ function composeContext(t, P) {
   const left = sections.length - new Set(parts.map((one) => one.sec).filter(Boolean)).size;
   return { parts, why: `Made for you: ${{ gist: 'the gist', main: 'the main points', all: 'everything' }[amount]}, ${numbersFirst ? 'numbers first' : 'in words first'}${me.from.amount || me.from.take ? '' : ', until you say otherwise'}.${left ? ` ${left} more ${left === 1 ? 'section is' : 'sections are'} held back.` : ''}` };
 }
+// A list as steps: each is ticked off on this device, and the tick stays here.
+function drawSteps(t, u, c) {
+  return u.items.map((item, i) => { const key = `${u.id}:${i}`; const done = (c.state.done ?? []).includes(key);
+    return h('button', { type: 'button', class: `d-step${done ? ' done' : ''}`, 'aria-pressed': String(done), on: { click: () => { c.state.done = done ? c.state.done.filter((one) => one !== key) : [...(c.state.done ?? []), key]; c.redraw(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, nodes(t, item, t.lang))); });
+}
 function drawBlocks(t, blocks, c) {
   const where = (id) => t.docs?.find((doc) => doc.units.includes(id))?.file.name ?? null;
-  return blocks.map((b) => {
+  return blocks.map((b, i) => {
     if (b.h) return h('h2', { class: 'd-h', text: b.h });
+    // Numbers set out one after another stand side by side.
+    if (b.tile) return blocks[i - 1]?.tile ? null : h('div', { class: 'd-marks' }, blocks.slice(i, blocks.findIndex((one, j) => j > i && !one.tile) < 0 ? undefined : blocks.findIndex((one, j) => j > i && !one.tile)).map((one) => h('div', { class: 'd-mark' }, h('strong', { text: t.values[one.tile].shown }), h('span', { text: one.label }))));
+    if (b.steps) return h('div', { class: 'd-next' }, drawSteps(t, unitOf(t, b.steps), c));
     if (b.show) return drawUnit(t, unitOf(t, b.show), c, false);
     if (b.mine) return h('p', { class: 'd-mine' }, nodes(t, b.mine, t.lang), h('small', { text: 'Added by whoever made this screen, not said in the documents.' }));
-    return h('div', { class: 'd-says' }, h('p', { class: 'd-say' }, nodes(t, b.text, t.lang)),
+    return h('div', { class: `d-says${b.caution ? ' d-caution' : ''}` }, h('p', { class: 'd-say' }, nodes(t, b.text, t.lang)),
       h('details', { class: 'd-src' }, h('summary', { text: b.says.length === 1 ? 'In the author’s words' : `In the author’s words, ${b.says.length} statements` }),
         b.says.map((id) => [drawUnit(t, unitOf(t, id), c, false), where(id) ? h('small', { text: where(id) }) : null])));
+  });
+}
+// What is open across everything a person holds: steps not yet ticked, a question that waits, a helper's next moment.
+function openNow(P) {
+  return held().flatMap((t) => {
+    const st = stateFor(t.id, 'you');
+    const of = calledOf(t, P, st);
+    if (isIdea(t)) { const spec = st.made ? composeHelper(t, P, st, t.maker === 'you') : null; const at = spec ? nextMoment(t, P, st, spec.source) : null; return at == null ? [] : [{ id: t.id, of, text: `At ${clock(at)}` }]; }
+    if (isCalc(t)) return [];
+    const steps = [...(t.context ?? []), ...(me.screens[t.id] ?? []).flatMap((one) => one.blocks)].map((b) => unitOf(t, b.steps ?? b.show ?? '')).filter((u, i, all) => u?.shape === 'list' && all.indexOf(u) === i && (t.context ?? []).some((b, at) => b.show === u.id && /^what comes next/i.test(t.context.slice(0, at).reverse().find((one) => one.h)?.h ?? '')) );
+    const left = steps.reduce((sum, u) => sum + u.items.filter((_, i) => !(st.done ?? []).includes(`${u.id}:${i}`)).length, 0);
+    return [...(pendingAsk(t, st) ? [{ id: t.id, of, text: 'A question waits on you' }] : []), ...(left && (st.done ?? []).length ? [{ id: t.id, of, text: `${left} ${left === 1 ? 'step' : 'steps'} left to do` }] : [])];
   });
 }
 function deskScreen(P) {
@@ -3771,6 +3796,7 @@ function deskScreen(P) {
     h('strong', { text: calledOf(one, P, stateFor(one.id, 'you')) }), h('span', { text: one.docs ? `${one.docs.length} documents` : isContainer(one) ? `${one.units.length} statements` : '' }));
   const kinds = [['Containers', things.filter(isContainer)], ['Tools', things.filter(isCalc)], ['Helpers', things.filter(isIdea)]].filter(([, list]) => list.length);
   const thingsSheet = () => h('div', { class: 'd-sheet' }, h('h2', { text: 'Yours' }),
+    openNow(P).length ? [h('h3', { text: 'Open now' }), openNow(P).map((one) => h('button', { type: 'button', class: 'd-row', on: { click: () => { thing = one.id; deskSheet = null; found = null; again(); } } }, h('strong', { text: one.text }), h('span', { text: one.of })))] : null,
     kinds.map(([name, list]) => [kinds.length > 1 ? h('h3', { text: name }) : null, list.map(row)]),
     h('button', { type: 'button', class: 'd-go', id: 'd-new', text: 'New container from files', on: { click: () => { newNext = true; files(); } } }),
     h('p', { class: 'dim', text: 'While this list is open, what you say below starts a new container too.' }),
@@ -3803,10 +3829,7 @@ function deskScreen(P) {
         limits: (sec) => h('aside', { class: 'd-caution' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
         next: (sec) => h('section', { class: 'd-next' }, h('h2', { class: 'd-h', text: sec.title }), sec.blocks.map((b) => {
           const u = b.show ? unitOf(t, b.show) : null;
-          // What comes next is a list to do: each step is ticked off on this device, and the tick stays here.
-          if (u?.shape !== 'list') return drawBlocks(t, [b], c);
-          return u.items.map((item, i) => { const key = `${u.id}:${i}`; const done = (st.done ?? []).includes(key);
-            return h('button', { type: 'button', class: `d-step${done ? ' done' : ''}`, 'aria-pressed': String(done), on: { click: () => { st.done = done ? st.done.filter((one) => one !== key) : [...(st.done ?? []), key]; saveSoon(); again(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, nodes(t, item, t.lang))); });
+          return u?.shape === 'list' ? drawSteps(t, u, c) : drawBlocks(t, [b], c);
         })),
         open: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks, c)),
         first: (sec) => h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: sec.title }), drawBlocks(t, sec.blocks.slice(0, 1), c)),
@@ -3826,7 +3849,7 @@ function deskScreen(P) {
     if (typeof tab === 'string' && tab !== 'all') {
       const made = kept[Number(tab.slice(1))];
       // Whatever was asked for, what the author marked is on the screen: here if the screen did not already hold it.
-      const has = new Set(made.blocks.flatMap((b) => (b.show ? (unitOf(t, b.show).marks ?? []).flatMap((mark) => mark.values) : [...(b.text ?? []), ...(b.mine ?? [])].filter((part) => part.v).map((part) => part.v))));
+      const has = new Set(made.blocks.flatMap((b) => (b.tile ? [b.tile] : b.show ? (unitOf(t, b.show).marks ?? []).flatMap((mark) => mark.values) : [...(b.text ?? []), ...(b.mine ?? [])].filter((part) => part.v).map((part) => part.v))));
       const missed = marksOf(t).filter((mark) => !mark.values.some((id) => has.has(id)));
       return h('div', { class: 'd-body d-ctx' }, h('header', { class: 'd-doc' }, h('h1', { text: made.words.replace(/^\p{Ll}/u, (first) => first.toUpperCase()) })), drawBlocks(t, made.blocks, c),
         missed.length ? h('section', { class: 'd-sec' }, h('h2', { class: 'd-h', text: 'The author also points at' }), h('div', { class: 'd-marks' }, missed.map((mark) => h('div', { class: 'd-mark' }, h('strong', { text: mark.text }), h('span', { text: mark.label }), mark.from ? h('small', { text: mark.from }) : null)))) : null,
@@ -3850,6 +3873,8 @@ function deskScreen(P) {
       t.place && t.payload?.mine ? h('button', { type: 'button', class: 'd-layout', id: 'd-add', text: 'Add files', on: { click: files } }) : null),
     found ? answer() : null,
     deskSheet === 'things' ? thingsSheet() : [isContainer(t) && !form ? tabs() : null, body()]);
+  // The first time a container is opened where there is a model, its screen is made for this person, and kept.
+  if (tab === 'context' && sample && !me.tried[t.id] && deskSheet !== 'things') { me.tried[t.id] = true; save(); queueMicrotask(() => screenSaid('', t)); }
   const spec = { layout: 'desk', device: 'phone', by: 'the device', blocks: [], why: ['One container at a time, opened on its context.'] };
   return { el: root, stop: () => inner?.stop?.(), spec: () => inner?.spec?.() ?? spec };
 }
@@ -4291,7 +4316,7 @@ people.you.look = { seed: String(Math.random()) };
 if (kept) {
   if (kept.you && typeof kept.you === 'object') Object.assign(people.you, personFrom(kept.you) ?? {}, typeof kept.you.look === 'object' && kept.you.look ? { look: { seed: String(kept.you.look.seed ?? kept.you.look.hue ?? 'you'), ...(Number.isFinite(kept.you.look.hue) ? { hue: kept.you.look.hue, dark: kept.you.look.dark === true } : {}) } } : {}, typeof kept.you.figures === 'string' ? { figures: kept.you.figures } : {}, { calendar: kept.you.calendar !== false, buzz: kept.you.buzz !== false });
   Object.assign(me, { talked: kept.talked === true, from: kept.from && typeof kept.from === 'object' ? kept.from : {}, learned: { forms: kept.learned?.forms ?? {}, rest: kept.learned?.rest ?? [] },
-    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links), screens: kept.screens && typeof kept.screens === 'object' ? kept.screens : {}, samples: kept.samples === true, last: typeof kept.last === 'string' ? kept.last : null, used: Object.fromEntries(Object.entries(kept.used && typeof kept.used === 'object' ? kept.used : {}).filter(([, at]) => Number.isFinite(at)).slice(0, 200)),
+    designs: Object.fromEntries(Object.entries(kept.designs && typeof kept.designs === 'object' ? kept.designs : {}).filter(([, raw]) => raw && typeof raw === 'object').slice(0, 40)), links: linksFrom(kept.links), screens: kept.screens && typeof kept.screens === 'object' ? kept.screens : {}, tried: kept.tried && typeof kept.tried === 'object' ? kept.tried : {}, samples: kept.samples === true, last: typeof kept.last === 'string' ? kept.last : null, used: Object.fromEntries(Object.entries(kept.used && typeof kept.used === 'object' ? kept.used : {}).filter(([, at]) => Number.isFinite(at)).slice(0, 200)),
     own: Object.fromEntries(Object.entries(kept.own && typeof kept.own === 'object' ? kept.own : {}).slice(0, 20).map(([name, lines]) => [ownKey(name), ownFrom(lines)]).filter(([name, lines]) => name && lines.length)) });
   for (const token of Array.isArray(kept.tokens) ? kept.tokens.slice(0, 40) : []) if (addPayload(fromToken(token), false)) me.tokens.push(token);
   for (const raw of Array.isArray(kept.recipes) ? kept.recipes.slice(0, 20) : []) { const recipe = recipeFrom(raw); if (recipe) RECIPES[recipe.name] = { ...recipe, own: true }; }
