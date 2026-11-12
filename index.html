@@ -2642,10 +2642,13 @@ function formWished(t, P, text) {
   const fitting = named.find((id) => !forms[id].fits(t, P));
   return fitting ? { form: fitting } : named.length ? { why: forms[named[0]].fits(t, P) } : null;
 }
+// Where no form is named, a model is asked: for the form they meant, or, for a thing to read, to design
+// the screen they described. Either answer is checked like any other.
 const WISH_REQUEST = (t, P, text) => [
-  'A person looks at one thing and says what they want it to be. Choose the one form that is closest to what they said.',
-  'Answer with one JSON object and nothing else: {"form": ID}', 'The forms:', ...Object.entries(formsFor(t)).filter(([, form]) => !form.fits(t, P)).map(([id, form]) => `"${id}": ${form.name}. ${form.does}`),
-  `What they said: ${text.slice(0, 300)}`].join('\n');
+  'A person looks at one thing and says what they want it to be.',
+  `What they said: ${text.slice(0, 300)}`,
+  'If one of these forms is what they mean, answer with one JSON object and nothing else: {"form": ID}', ...Object.entries(formsFor(t)).filter(([, form]) => !form.fits(t, P)).map(([id, form]) => `"${id}": ${form.name}. ${form.does}`),
+  ...(isCalc(t) || isIdea(t) ? [] : ['If none of them is, design the screen they described instead, as follows.', designRequest(t, P)])].join('\n');
 
 // ---- a whole screen somebody designs (a model): a tree of groups and pieces, and a look for it ---------
 // Groups set things under one another, side by side or in a grid, on a plain, raised or coloured ground.
@@ -3301,7 +3304,12 @@ function asPanel(open) {
     if (!text) return;
     let found = formWished(t, P, text);
     if (!found && sample) {
-      try { const got = objectIn((await sample(WISH_REQUEST(t, P, text), { cache: false })).text ?? ''); if (Object.hasOwn(forms, got?.form ?? '') && !forms[got.form].fits(t, P)) found = { form: got.form }; } catch { /* no model just now: the words alone decide */ }
+      try {
+        const got = objectIn((await sample(WISH_REQUEST(t, P, text), { cache: false })).text ?? '');
+        if (Object.hasOwn(forms, got?.form ?? '') && !forms[got.form].fits(t, P)) found = { form: got.form };
+        // No form was meant: what came back may be a screen designed for those words, held to the same promises as any.
+        else if (forms === FORMS && designFrom(t, P, got)) { delete st.form; wishSaid = null; panel.hidden = true; return design(got); }
+      } catch { /* no model just now: the words alone decide */ }
     }
     if (found?.form) return be(found.form);
     wishSaid = found?.why ?? 'None of these forms is named by that. Pick one above, or say it another way.';
