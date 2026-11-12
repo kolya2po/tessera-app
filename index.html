@@ -429,6 +429,25 @@ details.sent p { margin-top: 10px; font-size: 13px; color: var(--muted); }
 .spec { max-height: 16rem; overflow: auto; font: 11.5px/1.45 'IBM Plex Mono', ui-monospace, monospace; background: var(--bg); padding: 10px; border-radius: 10px; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 details.how summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .handmade { font-size: 13.5px; color: var(--muted); border-left: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+/* One thing, another form. */
+.forms { display: grid; gap: 8px; }
+.form { display: grid; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; font: inherit; }
+.form strong { font: 600 15px/1.2 var(--shell); }
+.form span { color: var(--muted); font-size: 13px; }
+.form[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.form[disabled] { opacity: 0.55; cursor: default; }
+#wish { flex: 1; min-width: 0; height: 40px; border-radius: 10px; border: 1px solid var(--line); padding: 0 10px; font: inherit; background: var(--bg); color: var(--fg); }
+.s .p-tick { display: flex; gap: 0.7em; align-items: flex-start; width: 100%; }
+.p-tick i { flex: none; width: 1.35em; height: 1.35em; margin-top: 0.08em; border-radius: calc(min(var(--r), 8) * 1px); box-shadow: inset 0 0 0 1.5px var(--line); }
+.p-tick[aria-pressed="true"] i { background: var(--accent); box-shadow: none; }
+.p-do.done .p-tick span { opacity: 0.55; text-decoration: line-through; }
+.p-live p { margin: 0; }
+.p-live .val.now { color: var(--accent); font-weight: 700; }
+.p-yours { font-size: 0.78em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.p-grid { display: grid; grid-template-columns: minmax(3.2em, auto) repeat(var(--n), minmax(0, 1fr)); gap: 6px 8px; align-items: center; width: 100%; font-size: 0.93em; }
+.p-grid b { font-weight: 600; font-size: 0.85em; color: var(--dim); }
+.s .p-cell { width: 100%; min-width: 0; height: 2.3em; padding: 0 0.5em; border: 0; border-radius: calc(min(var(--r), 8) * 1px); box-shadow: inset 0 0 0 1.5px var(--line); background: none; color: inherit; font: inherit; font-variant-numeric: tabular-nums; }
+.p-row-acts { display: flex; gap: 0.8em; align-items: center; flex-wrap: wrap; }
 /* A device's own taste: beyond colour and type, how things are edged, titled, grounded and pressed. */
 .s[data-edge="lined"] :is(.p-card, .p-fig, .h-piece, .k-out:not(.first), .k-field, .h-own) { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
 .s[data-edge="flat"] :is(.p-card, .p-fig, .h-piece, .k-out:not(.first)) { background: none; border-radius: 0; padding-left: 0; padding-right: 0; border-top: 1.5px solid var(--line); }
@@ -460,12 +479,12 @@ body:has(.shell.app) { padding: 0; }
 .app.me-open .stage { display: none; }
 .app.me-open .focus { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; overflow-y: auto; padding: 16px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "know" "rest"; align-content: start; background: var(--bg); }
 .app.me-open .focus > .about:not(:empty) { display: grid; }
-.app #make:not([hidden]) { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; z-index: 20; overflow-y: auto; border-radius: 0; border: 0; align-content: start; }
+.app #make:not([hidden]), .app #as:not([hidden]) { position: fixed; inset: 0 0 calc(54px + env(safe-area-inset-bottom, 0px)) 0; z-index: 20; overflow-y: auto; border-radius: 0; border: 0; align-content: start; }
 .app #opened:not(:empty), .app #learned:not(:empty) { position: fixed; left: 12px; right: 12px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.4); color: var(--fg); max-width: none; cursor: pointer; }
 .app #token:not([hidden]) { position: fixed; left: 12px; right: 12px; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); z-index: 30; height: 84px; width: auto; }
 @media (min-width: 700px) {
-  .app .stage, .app.me-open .focus, .app #make:not([hidden]) { left: 50%; right: auto; width: 400px; margin-left: -200px; top: 20px; bottom: 88px; border-radius: 34px; overflow: hidden; box-shadow: 0 30px 50px -30px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line); }
-  .app.me-open .focus, .app #make:not([hidden]) { overflow-y: auto; }
+  .app .stage, .app.me-open .focus, .app #make:not([hidden]), .app #as:not([hidden]) { left: 50%; right: auto; width: 400px; margin-left: -200px; top: 20px; bottom: 88px; border-radius: 34px; overflow: hidden; box-shadow: 0 30px 50px -30px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line); }
+  .app.me-open .focus, .app #make:not([hidden]), .app #as:not([hidden]) { overflow-y: auto; }
   .app .appbar { left: 50%; right: auto; width: 400px; margin-left: -200px; bottom: 20px; height: 54px; padding-bottom: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
   .app #opened:not(:empty), .app #learned:not(:empty), .app #token:not([hidden]) { left: 50%; right: auto; width: 376px; margin-left: -188px; }
   .app #opened:not(:empty), .app #learned:not(:empty) { bottom: 98px; }
@@ -481,6 +500,7 @@ body:has(.shell.app) { padding: 0; }
     <p id="opened" class="foot" aria-live="polite"></p>
     <textarea id="token" readonly hidden aria-label="What to send"></textarea>
     <section class="about" id="make" hidden></section>
+    <section class="about" id="as" hidden></section>
   </header>
   <nav class="people" id="people" aria-label="Who received it"></nav>
   <p id="learned" aria-live="polite"></p>
@@ -624,11 +644,11 @@ function wear(el, look, colours) {
 
 // ---- the device's own words, in the person's language -------------------------------------------------
 const WORDS = {
-  en: { voice: 'reworded for you · the author’s words', hide: 'hide the author’s words', more: (n) => `${n} more`, remind: 'Remind me', reminded: 'I will remind you', change: 'change', mind: 'Keep in mind',
+  en: { yours: 'With your numbers', wrote: 'The author wrote', addRow: 'Add a row', authorsNumbers: 'back to the author’s numbers', voice: 'reworded for you · the author’s words', hide: 'hide the author’s words', more: (n) => `${n} more`, remind: 'Remind me', reminded: 'I will remind you', change: 'change', mind: 'Keep in mind',
     type: 'Type an answer', noSource: 'no source given', from: (how, n, file) => `${how} of ${n} cells of ${file}`, tap: 'Tap the right side to go on.', inside: (n, v, a) => `${n} short screens. ${v} numbers. ${a ? `${a} to answer.` : ''}`,
     saw: (n, m) => `You saw ${n} of ${m} statements.`, seeRest: (n) => `See the ${n} it left out`, authors: 'The author’s words', sub: (s, a) => `${s} seconds${a ? ` · ${a} to answer` : ''}`, asked: 'Asked of you', kept: 'Your answer is kept.',
     glance: 'Back to the glance', yes: 'Yes', no: 'No', close: 'Close', home: 'Yours', nothing: 'Nothing here yet.', add: 'Add or make…', makeYours: 'Make it yours', ideaFrom: (name) => `An idea from ${name}`, said: (a) => `You said ${a}.`, later: 'One more question waits where you can type.', of: (a, b) => `${a} of ${b}`, last: 'dashed line: last year' },
-  uk: { voice: 'переказано для вас · слова автора', hide: 'сховати слова автора', more: (n) => `Ще ${n}`, remind: 'Нагадати мені', reminded: 'Нагадаю', change: 'змінити', mind: 'Майте на увазі',
+  uk: { yours: 'З вашими числами', wrote: 'Автор написав', addRow: 'Додати рядок', authorsNumbers: 'повернути числа автора', voice: 'переказано для вас · слова автора', hide: 'сховати слова автора', more: (n) => `Ще ${n}`, remind: 'Нагадати мені', reminded: 'Нагадаю', change: 'змінити', mind: 'Майте на увазі',
     type: 'Напишіть відповідь', noSource: 'без джерела', from: (how, n, file) => `${file}, клітинок: ${n}`, tap: 'Торкніться праворуч, щоб іти далі.', inside: (n, v, a) => `Коротких екранів: ${n}. Чисел: ${v}. ${a ? `Запитань до вас: ${a}.` : ''}`,
     saw: (n, m) => `Ви побачили ${n} із ${m} тверджень.`, seeRest: (n) => `Показати решту: ${n}`, authors: 'Слова автора', sub: (s, a) => `${s} секунд${a ? ` · запитань: ${a}` : ''}`, asked: 'Вас питають', kept: 'Відповідь збережено.',
     glance: 'Назад', yes: 'Так', no: 'Ні', close: 'Згорнути', home: 'Ваше', nothing: 'Тут поки нічого немає.', add: 'Додати або зробити…', makeYours: 'Зробити своїм', ideaFrom: (name) => `Ідея від: ${name}`, said: (a) => `Ваша відповідь: ${a}.`, later: 'Ще одне запитання чекає там, де можна писати.', of: (a, b) => `${a} із ${b}`, last: 'пунктир — торік' },
@@ -692,7 +712,7 @@ function blockFor(thing, u, neededOnly) {
   return { piece: neededOnly ? 'note' : 'say', of: u.id };
 }
 const unitsOn = (thing, blocks) => new Set(blocks.flatMap((b) => (['figure', 'date', 'gauge'].includes(b.piece) ? [thing.values[b.of].unit]
-  : ['rest', 'end', 'cover', 'title', 'heading'].includes(b.piece) ? [] : [b.of, ...(b.mind ?? [])])));
+  : ['rest', 'end', 'cover', 'title', 'heading', 'rows'].includes(b.piece) ? [] : [b.of, ...(b.mind ?? [])])));
 
 function boardBlocks(thing, P, k) {
   const blocks = [];
@@ -779,8 +799,11 @@ function compose(thing, P, state) {
   else if (P.take === 'numbers' && hasFile) { layout = 'bench'; k.why.push(`${P.name} checks numbers against their data, and this came with its data file. So the file is the screen, and each claim is pinned to the cells it comes from.`); }
   else if (P.take === 'one') { layout = 'deck'; k.why.push(`${P.name} takes one thing at a time. So each statement gets a screen of its own.`); }
   if (P.take === 'numbers' && !hasFile) k.why.push('No data file came with this, so no number can be worked out again. Each one says it has no source.');
-  const blocks = { board: boardBlocks, deck: deckBlocks, bench: benchBlocks, glance: glanceBlocks }[layout](thing, P, k);
-  return finish(thing, P, { layout, blocks, why: k.why });
+  // A form its person asked for takes the place of the device's own choice, for as long as it fits.
+  const asked = wantedForm(thing, P, state);
+  if (asked) { layout = FORMS[asked].layout; k.why = [`${P.name} asked for it as ${FORMS[asked].name.toLowerCase()}. ${FORMS[asked].does}`]; }
+  const blocks = (FORM_BLOCKS[asked] ?? { board: boardBlocks, deck: deckBlocks, bench: benchBlocks, glance: glanceBlocks }[layout])(thing, P, k);
+  return finish(thing, P, { layout, blocks, why: k.why, form: asked });
 }
 // What is true of any screen, whoever arranged it: how much of the thing it shows, in whose words.
 function finish(thing, P, spec) {
@@ -792,7 +815,7 @@ function finish(thing, P, spec) {
   else if (P.language !== thing.lang) why.push(`No ${languageName(P.language)} version came with it, so it is in the author’s language.`);
   if (P.words === 'plain' && thing.said[langOf(thing, P)]?.heads) why.push('Plain headlines where there are some. Each is marked, with the author’s sentence under it.');
   if (P.size === 'large') why.push('Larger type.');
-  return { layout: spec.layout, device: P.device, blocks: spec.blocks, why, shown: on.size, total, by: spec.by ?? 'the device' };
+  return { layout: spec.layout, device: P.device, blocks: spec.blocks, why, shown: on.size, total, by: spec.by ?? 'the device', form: spec.form ?? null };
 }
 const LANGUAGES = { en: 'English', uk: 'Ukrainian' };
 
@@ -2495,6 +2518,135 @@ const CALC_REQUEST = [
   'A tool may keep each use as an entry: add "keeps": "what one entry is, such as a run", and "over": [at most 3 of {"name": "a few words", "of": the id of a TAKE or the position of a GIVE counted from 0, "as": "sum", "mean", "most", "least" or "count", "days": 7, 30, or leave out for all of them}].',
   'Every GIVE must follow at least one TAKE. You write no code and state no facts: the device works each answer out.', 'The description: '].join('\n');
 
+// ---- forms: what a container can be -------------------------------------------------------------------
+// A container is data and the context around it: what the data says, what it must not be read without,
+// what is promised and what is asked. A form is a way of using that. The device picks the first form
+// from what it knows of its person; the person may pick any form that fits, or say what they want it
+// to be. A form fits when the container holds what the form works on, and a form that does not fit
+// says why. No form changes the container: where its data is changed, that is the person's own copy,
+// and the author's words stay beside it.
+const DOABLE = ['ask', 'commitment', 'instruction'];
+const boundValues = (thing) => Object.entries(thing.values).filter(([, v]) => v.from);
+const FORMS = {
+  page: { name: 'A page', does: 'Read it through.', layout: 'board', fits: () => null },
+  story: { name: 'A story', does: 'One statement to a screen.', layout: 'deck', fits: () => null },
+  todo: { name: 'To do', does: 'What it asks of you, what was promised and what to do, to tick off.', layout: 'board', fits: (thing) => (thing.units.some((u) => DOABLE.includes(u.kind)) ? null : 'Nothing in it asks, promises or tells you to do something.') },
+  numbers: { name: 'Other numbers', does: 'Change its data or add to it, and see what its statements would say.', layout: 'board', fits: (thing) => (boundValues(thing).length ? null : 'None of its numbers comes from a data file, so there is nothing to work out again.') },
+  glance: { name: 'A glance', does: 'The one number, and a voice.', layout: 'glance', fits: (thing) => (Object.values(thing.values).some((v) => v.type === 'data') ? null : 'It holds no number to glance at.') },
+  data: { name: 'The data', does: 'The file itself, each claim pinned to its cells.', layout: 'bench', fits: (thing, P) => (!Object.keys(thing.files).length ? 'No data file came with it.' : P.device !== 'desk' ? 'The file needs a wide screen. On this one, “Other numbers” shows the same data.' : null) },
+};
+// A tool or a helper is used, or read: what it is for and how it works, as statements like any other.
+const WORKING_FORMS = {
+  use: { name: 'Use it', does: 'The thing itself, working.', fits: () => null },
+  page: { name: 'What it is', does: 'Read what it is for and how it works.', fits: () => null },
+};
+const formsFor = (t) => (isCalc(t) || isIdea(t) ? WORKING_FORMS : FORMS);
+const FORM_OF_LAYOUT = { board: 'page', deck: 'story', glance: 'glance', bench: 'data', calc: 'use', tool: 'use', setup: 'use' };
+// The form its person asked for, while it still fits; else null, and the device chooses.
+const wantedForm = (thing, P, state) => (state.form && Object.hasOwn(FORMS, state.form) && P.device !== 'watch' && !FORMS[state.form].fits(thing, P) ? state.form : null);
+
+// What a shown statement needs is set right after it, whatever the form.
+function withNeeds(thing, blocks) {
+  const out = [];
+  for (const block of blocks) {
+    out.push(block);
+    for (const need of unitOf(thing, block.of)?.needs ?? []) if (!unitsOn(thing, [...out, ...blocks]).has(need)) out.push({ piece: 'note', of: need });
+  }
+  return [...out, { piece: 'rest', of: thing.units.filter((u) => !unitsOn(thing, out).has(u.id)).map((u) => u.id) }];
+}
+function todoBlocks(thing) {
+  return [{ piece: 'title' }, ...withNeeds(thing, thing.units.filter((u) => DOABLE.includes(u.kind)).map((u) => ({ piece: u.kind === 'ask' ? 'ask' : 'do', of: u.id })))];
+}
+function numbersBlocks(thing) {
+  const files = [...new Set(boundValues(thing).map(([, v]) => v.from.file))];
+  const live = thing.units.filter((u) => u.text.some((part) => part.v && thing.values[part.v].from));
+  return [{ piece: 'title' }, ...files.map((id) => ({ piece: 'rows', of: id })), ...withNeeds(thing, live.map((u) => ({ piece: 'live', of: u.id })))];
+}
+const FORM_BLOCKS = { todo: todoBlocks, numbers: numbersBlocks };
+
+// The person's own copy of a data file, once they have changed it; else the author's.
+const rowsOf = (c, fileId) => c.state.rows?.[fileId] ?? c.thing.files[fileId].rows;
+function liveNumber(c, vid) {
+  const v = c.thing.values[vid];
+  const xs = rowsOf(c, v.from.file).map((row) => row[v.from.col]).filter(Number.isFinite);
+  return xs.length ? AGG[v.from.as](xs) : null;
+}
+// A value worked out again is written the way its author wrote it: the same places, the same unit.
+function liveShown(c, vid) {
+  const v = c.thing.values[vid];
+  const now = liveNumber(c, vid);
+  if (now === null) return '–';
+  const places = (/[.,](\d+)/.exec(v.shown.match(/-?\d+(?:[.,]\d+)?/)?.[0] ?? '')?.[1] ?? '').length;
+  return v.shown.replace(/-?\d+(?:[.,]\d+)?/, now.toFixed(places));
+}
+Object.assign(PIECES, {
+  do(c, b) {
+    const u = unitOf(c.thing, b.of);
+    const done = (c.state.done ?? []).includes(u.id);
+    const said = body(c, u.id);
+    const due = u.text.find((part) => part.v && c.thing.values[part.v].type === 'time')?.v;
+    return h('div', { class: `p-card p-do${done ? ' done' : ''}` },
+      h('button', { type: 'button', class: 'p-tick', 'aria-pressed': String(done), on: { click: () => { c.state.done = done ? c.state.done.filter((id) => id !== u.id) : [...(c.state.done ?? []), u.id]; c.redraw(); } } }, h('i', { 'aria-hidden': 'true' }), h('span', {}, said.nodes)),
+      voice(c, u.id, said.reworded), due ? remind(c, due) : null);
+  },
+  // A statement with its numbers worked out from the data as it stands now. Where that differs from what
+  // its author wrote, the author's sentence is set under it, unchanged.
+  live(c, b) {
+    const u = unitOf(c.thing, b.of);
+    const segs = parts(c.thing, u.id, c.lang);
+    let moved = false;
+    const kids = segs.map((part) => {
+      if (typeof part === 'string') return part;
+      const v = c.thing.values[part.v];
+      const now = v.from ? liveShown(c, part.v) : vtext(c.thing, part.v, c.lang);
+      if (v.from && now !== v.shown) moved = true;
+      return h('span', { class: `val${v.from && now !== v.shown ? ' now' : ''}`, text: now });
+    });
+    return h('div', { class: `p-card p-live${moved ? ' moved' : ''}` }, moved ? h('small', { class: 'p-yours', text: c.t.yours }) : null, h('p', {}, kids),
+      moved ? h('small', { class: 'dim', lang: c.thing.lang, text: `${c.t.wrote}: ${flat(c.thing, segs, c.lang)}` }) : null);
+  },
+  rows(c, b) {
+    const file = c.thing.files[b.of];
+    const used = [...new Set(boundValues(c.thing).filter(([, v]) => v.from.file === b.of).map(([, v]) => v.from.col))];
+    const rows = rowsOf(c, b.of);
+    const set = (next) => { c.state.rows = { ...(c.state.rows ?? {}), [b.of]: next }; c.redraw(); };
+    const cell = (row, i, col) => h('input', { type: 'number', inputmode: 'decimal', class: 'p-cell', value: row[col] ?? '', 'aria-label': `${row.key}, ${col}`,
+      on: { change: (event) => { const value = Number.parseFloat(event.target.value); set(rows.map((one, j) => (j === i ? { ...one, [col]: Number.isFinite(value) ? value : null } : one))); } } });
+    return h('div', { class: 'p-card p-rows wide' }, h('small', { class: 'dim', text: file.name }),
+      h('div', { class: 'p-grid', style: { '--n': String(used.length) } }, h('span'), used.map((col) => h('b', { text: file.cols.find(([key]) => key === col)?.[1] ?? col })),
+        rows.map((row, i) => [h('span', { text: row.short?.[c.lang] ?? row.short?.en ?? row.key }), used.map((col) => cell(row, i, col))])),
+      h('div', { class: 'p-row-acts' },
+        h('button', { type: 'button', class: 'p-pill', text: c.t.addRow, on: { click: () => set([...rows, { key: `+${rows.length - file.rows.length + 1}`, ...Object.fromEntries(used.map((col) => [col, rows.at(-1)?.[col] ?? 0])) }]) } }),
+        c.state.rows?.[b.of] ? h('button', { type: 'button', class: 'p-voice', text: c.t.authorsNumbers, on: { click: () => { const next = { ...c.state.rows }; delete next[b.of]; c.state.rows = next; c.redraw(); } } }) : null));
+  },
+});
+
+// A tool or a helper as statements, so that it can be read, and shown in any form a page can take.
+function asThing(t) {
+  const unit = (id, kind, text, must) => ({ id, kind, ...(must ? { must: true } : {}), text: [text] });
+  const units = isCalc(t)
+    ? [unit('p', 'claim', t.purpose, true), ...t.takes.map((take, i) => unit(`t${i}`, 'claim', `It takes ${take.name.toLowerCase()}${take.unit ? `, in ${take.unit}` : ''}${take.options ? `: ${take.options.map(([, label]) => label).join(', ')}` : ''}.`)),
+      ...t.gives.map((give, i) => unit(`g${i}`, 'claim', `${give.name} is ${formulaWords(give.from, calcNames(t))}.`, true)), ...(t.keeps ? [unit('k', 'claim', `It keeps each ${t.keeps.replace(/^an? /, '')} on your device, and nowhere else.`)] : [])]
+    : [unit('p', 'claim', t.purpose, true), ...t.needs.map((need, i) => unit(`n${i}`, 'claim', need.text)), ...t.does.map((rule, i) => unit(`d${i}`, 'instruction', rule.text, true)), ...t.asks.map((q, i) => unit(`q${i}`, 'claim', `It asks: ${q.text}`))];
+  return { id: `${t.id}:read`, lang: 'en', title: t.title ?? t.label, label: t.label, count: `${units.length} statements`, units, values: {}, files: {}, said: {}, note: '' };
+}
+
+// What a person says they want a thing to be, matched to a form by its plain words. A model, where there
+// is one, is asked only when the words match nothing.
+const WISHES = [['todo', /list|to.?do|check|tick|task|remind/i], ['story', /story|one (thing )?at a time|slides?|step by step|cards?/i], ['numbers', /number|what.?if|chang|try|play|calculat|track|keep|add|update|my own/i],
+  ['glance', /glance|one number|at a look|quick|short|listen|aloud|voice/i], ['data', /data|table|file|sheet|cells?|rows?/i], ['page', /page|read|everything|whole|document|all of it/i],
+  ['use', /use|work|run|do it|start/i]];
+function formWished(t, P, text) {
+  const forms = formsFor(t);
+  const named = WISHES.filter(([id, words]) => Object.hasOwn(forms, id) && words.test(text)).map(([id]) => id);
+  const fitting = named.find((id) => !forms[id].fits(t, P));
+  return fitting ? { form: fitting } : named.length ? { why: forms[named[0]].fits(t, P) } : null;
+}
+const WISH_REQUEST = (t, P, text) => [
+  'A person looks at one thing and says what they want it to be. Choose the one form that is closest to what they said.',
+  'Answer with one JSON object and nothing else: {"form": ID}', 'The forms:', ...Object.entries(formsFor(t)).filter(([, form]) => !form.fits(t, P)).map(([id, form]) => `"${id}": ${form.name}. ${form.does}`),
+  `What they said: ${text.slice(0, 300)}`].join('\n');
+
 // ---- a whole screen somebody designs (a model): a tree of groups and pieces, and a look for it ---------
 // Groups set things under one another, side by side or in a grid, on a plain, raised or coloured ground.
 // A leaf names a piece of the kit, or is a heading of the designer's own with no digit in it. What a leaf
@@ -2960,7 +3112,7 @@ const KIT = {
   step: 'One statement to a screen', end: 'What it left out', claim: 'A claim pinned to its cells', gauge: 'Gauge', line: 'A line read aloud',
   purpose: 'What it is for', carried: 'A question the idea carries', make: 'Make it', name: 'Its name for you', cards: 'Flashcard', chords: 'Chord diagram', prompt: 'A prompt',
   week: 'A week with its free gaps', morning: 'A question each morning', hours: 'The hours of a day', timer: 'Timer', foot: 'Where it came from', now: 'The next moment',
-  keep: 'Keep this one', over: 'Answers over what it kept', kept: 'What it has kept', about: 'What it is for', enter: 'Something it takes', result: 'What it gives', others: 'The other answers', how: 'How it is worked out', again: 'Start again', origin: 'Where it came from',
+  do: 'Something to tick off', live: 'A statement worked out again from the data', rows: 'The data, to change or add to', keep: 'Keep this one', over: 'Answers over what it kept', kept: 'What it has kept', about: 'What it is for', enter: 'Something it takes', result: 'What it gives', others: 'The other answers', how: 'How it is worked out', again: 'Start again', origin: 'Where it came from',
   list: 'A list to tick off', steps: 'Steps, one at a time', counter: 'A counter', times: 'Set times of the day', days: 'Every few days', phone: 'The rest is on the phone',
 };
 Object.assign(KIT, { asked: 'A question you can answer from here', helper: 'A helper, by its next moment', idea: 'An idea waiting to be made yours', read: 'A thing to read, by its main number', more: 'The rest', asks: 'A question about you' });
@@ -3001,6 +3153,8 @@ function mount(id, live, scale) {
   const P = isIdea(t) && people[id].device === 'desk' ? { ...people[id], device: 'phone' } : people[id];
   const st = t.home ? null : live ? stateOf(id) : isIdea(t) ? helperStart(thing, id) : isCalc(t) ? calcStart(t) : freshState();
   const made = t.home ? (id === 'you' && live && !me.talked ? talkScreen(P, table) : homeScreen(id, P, live, live ? () => about() : null, (tid) => { thing = tid; arranged = null; table(); }))
+    // A tool or a helper its person asked to read is shown as the statements it is made of.
+    : (isCalc(t) || isIdea(t)) && live && st.form === 'page' ? screen(asThing(t), P, (st.reading ??= freshState()), live, () => about(), null, null)
     : isCalc(t) ? calcScreen(t, id, P, st, live, live ? () => about() : null, live ? helperDesign(id) : null)
     : isIdea(t) ? helperScreen(t, id, P, st, live, live ? () => about() : null, passedOn, live ? helperDesign(id) : null) : screen(t, P, st, live, live ? () => about() : null, live ? arranged ?? keptDesign(id) : null, live && id === 'you' ? noted : null);
   const dev = h('div', { class: `dev dev-${P.device}${live ? ' enter' : ''}` }, h('div', { class: 'scr' }, made.el));
@@ -3022,7 +3176,7 @@ const stageScale = (outer, device) => {
 const nameOfScreen = (spec, mine) => (spec.tree ? 'Designed whole by a model, checked here.' : spec.by === 'Claude' ? 'Arranged by Claude, checked here.'
   : ({ calc: 'A tool made into their own screen. No code came with it.', home: 'Everything of theirs, on one screen made for them.', talk: 'Before anything else, it asks.', bench: 'The data is the screen.', deck: 'One thing to a screen.', glance: 'A glance, then sound.', setup: 'An idea, before it is made.', tool: mine ? 'The maker’s own helper.' : 'Their own version of the idea.' })[spec.layout]
   ?? (spec.blocks[0]?.piece === 'question' ? 'The question is the screen.' : spec.blocks[0]?.piece === 'answered' ? 'Answered. What happens next.' : 'The page, in the author’s order.'));
-const kindOfScreen = (spec) => ({ calc: 'A tool', design: 'Designed', home: 'A home', talk: 'Being asked', bench: 'The data', deck: 'A story', glance: 'A glance', setup: 'Being asked', tool: 'Their helper' })[spec.layout] ?? (spec.blocks[0]?.piece === 'question' ? 'The question' : 'A page');
+const kindOfScreen = (spec) => (['todo', 'numbers'].includes(spec.form) ? FORMS[spec.form].name : null) ?? ({ calc: 'A tool', design: 'Designed', home: 'A home', talk: 'Being asked', bench: 'The data', deck: 'A story', glance: 'A glance', setup: 'Being asked', tool: 'Their helper' })[spec.layout] ?? (spec.blocks[0]?.piece === 'question' ? 'The question' : 'A page');
 const tryIt = (spec) => ({ calc: 'Change what it takes and watch what it gives.', design: 'It works like any other: answer it, turn the numbers over.', home: 'Answer from here, or open anything.', talk: 'Answer, or skip.', bench: 'Click a claim. Untick a row and watch each claim move.', deck: 'Tap the right side to go on, the left to go back.', glance: 'Press play.',
   setup: 'Answer what the idea asks, then make it.', tool: 'Use it. Its maker can pass it on, from the bottom of the screen.' })[spec.layout]
   ?? (spec.blocks[0]?.piece === 'question' ? 'Answer it. Tap a number to turn it into a picture, then into words.' : 'Tap a number to turn it over.');
@@ -3049,6 +3203,7 @@ function about() {
     h('div', {}, h('h2', { text: person === 'you' && spec.layout === 'home' ? 'Everything of yours, on one screen made for you.' : person === 'you' ? nameOfScreen(spec, t.maker === person).replace(/\btheir\b/g, 'your').replace(/\bthem\b/g, 'you') : nameOfScreen(spec, t.maker === person) }), h('p', { class: 'who', text: `${P.name}. ${P.who}` })),
     h('p', { class: 'try', text: `${tryIt(spec)} Then change anything the device knows: the screen is made again.` }),
     person === 'you' && !t.home ? h('button', { type: 'button', class: 'textlink', id: 'send', text: 'Copy this to send to someone', on: { click: () => copyToSend(t) } }) : null,
+    comparing && !t.home ? h('button', { type: 'button', class: 'textlink', id: 'open-as', text: 'Show it as something else', on: { click: () => asPanel(true) } }) : null,
     comparing || !me.talked ? null : h('button', { type: 'button', class: 'textlink', id: 'to-compare', text: 'See what someone else gets from the same thing', on: { click: () => { comparing = true; meOpen = false; if (THINGS[thing].home) thing = 'week'; person = who()[1]; table(); } } }),
     person === 'you' && !t.home && connectors ? h('button', { type: 'button', class: 'textlink', id: 'keep-docs', disabled: docs?.busy === true, text: docs?.busy ? 'Saving…' : 'Keep a copy in my Claude Docs', on: { click: async () => { docs = { busy: true }; about(); docs = { thing, ...(await keepInDocs(t)) }; about(); } } }) : null,
     docs?.thing === thing ? h('p', { class: 'who', id: 'docs-said' }, docs.said, docs.url ? [' ', h('a', { href: docs.url, target: '_blank', rel: 'noopener', text: 'Open it' })] : null) : null);
@@ -3081,7 +3236,7 @@ function about() {
   put(document.getElementById('about'),
     h('div', {}, h('h3', { text: 'Why this screen' }), h('div', { class: 'whys' }, spec.why.map((text) => h('p', { text }))),
       spec.dropped ? h('p', { class: 'who', text: `${spec.dropped} of Claude’s blocks named something that is not there, and were left out.` }) : null),
-    h('div', {}, h('h3', { text: 'Made of' }), h('div', { class: 'pieces' }, h('span', { class: 'piece fresh', text: LAYOUT_NAMES[spec.layout] }), pieces.map((id) => h('span', { class: 'piece', text: KIT[id] })),
+    h('div', {}, h('h3', { text: 'Made of' }), h('div', { class: 'pieces' }, h('span', { class: 'piece fresh', text: spec.form ? `${FORMS[spec.form].name}, as asked` : LAYOUT_NAMES[spec.layout] }), pieces.map((id) => h('span', { class: 'piece', text: KIT[id] })),
       Object.keys(RECIPES).map((name) => h('span', { class: 'piece fresh', text: `${name}, made by Claude` }))),
       h('p', { class: 'who', text: `${Object.entries(tasteFrom((spec.look ? lookFrom(spec.look) : lookOf(P)).taste)).filter(([key]) => key !== 'figures' && key !== 'home').map(([, kind]) => ({ filled: 'Filled cards', lined: 'Outlined cards', flat: 'No cards, only rules', big: 'large titles', caps: 'titles in small capitals', ruled: 'underlined titles', solid: 'a plain ground', tint: 'a tinted ground', dots: 'a dotted ground', pill: 'round buttons', block: 'square buttons' })[kind]).join(', ')}. In ${spec.look ? 'a look its designer chose' : lookOf(P).name === 'Their own' ? 'a look of their own' : `the look “${lookOf(P).name}”`}.${spec.total ? ` ${spec.shown} of ${spec.total} statements.` : ''}` })),
     h('details', { class: 'how' }, h('summary', { text: 'The screen as data' }), h('pre', { class: 'spec', text: JSON.stringify({ arrangedBy: spec.by, layout: spec.layout, device: spec.device, look: spec.look ?? P.look, ...(spec.tree ? { tree: spec.tree } : { blocks: spec.blocks }) }, null, 1) })),
@@ -3129,13 +3284,45 @@ function open(id) {
   arranged = null;
   focus();
 }
+// One thing, another form: every form the thing can take, why the others do not fit, and a place to say it in words.
+let wishSaid = null;
+function asPanel(open) {
+  const panel = document.getElementById('as');
+  panel.hidden = !open;
+  if (!open) return;
+  const t = THINGS[thing];
+  const P = people[person];
+  const st = stateOf(person);
+  const forms = formsFor(t);
+  const now = shown.spec().form ?? (st.form === 'page' && forms === WORKING_FORMS ? 'page' : FORM_OF_LAYOUT[shown.spec().layout]);
+  const be = (id) => { if (id) st.form = id; else delete st.form; arranged = null; wishSaid = null; panel.hidden = true; table(); };
+  const wish = async () => {
+    const text = document.getElementById('wish').value.trim();
+    if (!text) return;
+    let found = formWished(t, P, text);
+    if (!found && sample) {
+      try { const got = objectIn((await sample(WISH_REQUEST(t, P, text), { cache: false })).text ?? ''); if (Object.hasOwn(forms, got?.form ?? '') && !forms[got.form].fits(t, P)) found = { form: got.form }; } catch { /* no model just now: the words alone decide */ }
+    }
+    if (found?.form) return be(found.form);
+    wishSaid = found?.why ?? 'None of these forms is named by that. Pick one above, or say it another way.';
+    asPanel(true);
+  };
+  put(panel, h('h2', { text: 'What should this be?' }), h('p', { class: 'who', text: 'The same data and the same words around it, used another way. Nothing in it is changed.' }),
+    h('div', { class: 'forms' }, Object.entries(forms).map(([id, form]) => { const why = form.fits(t, P); return h('button', { type: 'button', class: 'form', id: `as-${id}`, disabled: Boolean(why), 'aria-pressed': String(id === now), on: { click: () => be(id) } }, h('strong', { text: form.name }), h('span', { text: why ?? form.does })); })),
+    h('div', { class: 'model-row' }, h('input', { type: 'text', id: 'wish', placeholder: 'Or say it: a checklist, let me try other numbers…', 'aria-label': 'Say what you want it to be', on: { keydown: (event) => { if (event.key === 'Enter') wish(); } } }),
+      h('button', { type: 'button', class: 'go', id: 'wish-go', text: 'Make it that', on: { click: wish } })),
+    wishSaid ? h('p', { id: 'wish-said', 'aria-live': 'polite', text: wishSaid }) : null,
+    st.form ? h('button', { type: 'button', class: 'textlink', id: 'as-own', text: 'Let the device choose again', on: { click: () => be(null) } }) : null,
+    h('button', { type: 'button', class: 'textlink', text: 'Close', on: { click: () => { wishSaid = null; asPanel(false); } } }));
+}
 function bar() {
   const t = THINGS[thing];
   const button = (id, text, on, click) => h('button', { type: 'button', id: `bar-${id}`, 'aria-pressed': String(on), text, on: { click } });
-  const go = (id) => () => { thing = id; arranged = null; meOpen = false; maker(null); table(); };
+  const go = (id) => () => { thing = id; arranged = null; meOpen = false; maker(null); asPanel(false); table(); };
   put(document.getElementById('bar'), comparing ? h('button', { type: 'button', id: 'to-app', text: 'Back to my app', on: { click: () => { comparing = false; thing = 'home'; table(); } } })
     : [button('home', 'Home', thing === 'home' && !meOpen, go('home')), button('add', 'Add', false, () => { meOpen = false; table(); maker('helper'); }),
-      t.home || !me.talked ? null : button('send', 'Send', false, () => copyToSend(t)), button('me', 'Me', meOpen, () => { meOpen = !meOpen; maker(null); table(); })]);
+      t.home || !me.talked ? null : button('as', 'As', false, () => { meOpen = false; maker(null); table(); asPanel(true); }),
+      t.home || !me.talked ? null : button('send', 'Send', false, () => copyToSend(t)), button('me', 'Me', meOpen, () => { meOpen = !meOpen; maker(null); asPanel(false); table(); })]);
 }
 function table() {
   const shell = document.querySelector('.shell');
